@@ -6,6 +6,7 @@ en: Module for describing the scheme of different requests to the API.
 """
 
 from abc import ABC, abstractmethod
+from .api_errors import AttrValueRestrictionError
 
 
 class SchemaBase(ABC):
@@ -24,41 +25,7 @@ class FindVacancySchema(SchemaBase):
     en: Class for describing the vacancy request scheme.
     """
     def __init__(self):
-        self._parameters = {
-            "per_page": None,
-            "page": None,
-            "text": None,
-            "search_field": None,
-            "experience": None,
-            "employment": None,
-            "schedule": None,
-            "area": None,
-            "industry": None,
-            "employer_id": None,
-            "currency": None,
-            "salary": None,
-            "label": None,
-            "only_with_salary": None,
-            "period": None,
-            "date_from": None,
-            "date_to": None,
-            "top_lat": None,
-            "bottom_lat": None,
-            "left_lng": None,
-            "right_lng": None,
-            "order_by": None,
-            "sort_point_lat": None,
-            "sort_point_lng": None,
-            "clusters": None,
-            "describe_arguments": None,
-            "no_magic": None,
-            "premium": None,
-            "responses_count_enabled": None,
-            "part_time": None,
-            "accept_temporary": None,
-            "locale": None,
-            "host": None
-        }
+        self._parameters = {}
 
     def set_parameters(
             self,
@@ -134,11 +101,41 @@ class FindVacancySchema(SchemaBase):
         :param locale: string, Locale
         :param host: string, Host
         """
-        if per_page > 100:
-            raise ValueError("per_page must be <= 100")
-        for param in locals():
-            if param != 'self':
-                self._parameters[param] = locals()[param]
+        if not 1 <= per_page <= 100:
+            raise AttrValueRestrictionError()
+        self._parameters["per_page"] = per_page
+        self._parameters["page"] = page
+        self._parameters["text"] = text
+        self._parameters["search_field"] = search_field
+        self._parameters["experience"] = experience
+        self._parameters["employment"] = employment
+        self._parameters["schedule"] = schedule
+        self._parameters["area"] = area
+        self._parameters["industry"] = industry
+        self._parameters["employer_id"] = employer_id
+        self._parameters["currency"] = currency
+        self._parameters["salary"] = salary
+        self._parameters["label"] = label
+        self._parameters["only_with_salary"] = only_with_salary
+        self._parameters["period"] = period
+        self._parameters["date_from"] = date_from
+        self._parameters["date_to"] = date_to
+        self._parameters["top_lat"] = top_lat
+        self._parameters["bottom_lat"] = bottom_lat
+        self._parameters["left_lng"] = left_lng
+        self._parameters["right_lng"] = right_lng
+        self._parameters["order_by"] = order_by
+        self._parameters["sort_point_lat"] = sort_point_lat
+        self._parameters["sort_point_lng"] = sort_point_lng
+        self._parameters["clusters"] = clusters
+        self._parameters["describe_arguments"] = describe_arguments
+        self._parameters["no_magic"] = no_magic
+        self._parameters["premium"] = premium
+        self._parameters["responses_count_enabled"] = responses_count_enabled
+        self._parameters["part_time"] = part_time
+        self._parameters["accept_temporary"] = accept_temporary
+        self._parameters["locale"] = locale
+        self._parameters["host"] = host
 
 
 class FindEmployerSchema(SchemaBase):
@@ -147,17 +144,7 @@ class FindEmployerSchema(SchemaBase):
     en: Class for describing the employer request scheme.
     """
     def __init__(self):
-        self._parameters = {
-            "text": None,
-            "area": None,
-            "type": None,
-            "only_with_vacancies": None,
-            "sort_by": None,
-            "page": None,
-            "per_page": None,
-            "locale": None,
-            "host": None,
-        }
+        self._parameters = {}
 
     def set_parameters(
             self,
@@ -185,11 +172,16 @@ class FindEmployerSchema(SchemaBase):
         :param locale: string, Locale
         :param host: string, Host
         """
-        for param in locals():
-            if param != 'self':
-                if param == "type_":
-                    self._parameters["type"] = locals()[param]
-                self._parameters[param] = locals()[param]
+
+        self._parameters["text"] = text
+        self._parameters["area"] = area
+        self._parameters["type"] = type_
+        self._parameters["only_with_vacancies"] = only_with_vacancies
+        self._parameters["sort_by"] = sort_by
+        self._parameters["page"] = page
+        self._parameters["per_page"] = per_page
+        self._parameters["locale"] = locale
+        self._parameters["host"] = host
 
 
 class InfoSchema(SchemaBase):
@@ -198,10 +190,7 @@ class InfoSchema(SchemaBase):
     en: Class for describing the information request scheme about the vacancy.
     """
     def __init__(self):
-        self._parameters = {
-            "locale": None,
-            "host": None
-        }
+        self._parameters = {}
 
     def set_parameters(
             self,
