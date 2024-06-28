@@ -135,10 +135,10 @@ class FindVacancySchema(SchemaBase):
         :param host: string, Host
         """
         if per_page > 100:
-            raise ValueError("per_page must be <= 100") # todo: add to exception to api_errors
+            raise ValueError("per_page must be <= 100")
         for param in locals():
             if param != 'self':
-                self.parameters[param] = locals()[param]
+                self._parameters[param] = locals()[param]
 
 
 class FindEmployerSchema(SchemaBase):
@@ -188,8 +188,8 @@ class FindEmployerSchema(SchemaBase):
         for param in locals():
             if param != 'self':
                 if param == "type_":
-                    self.parameters["type"] = locals()[param]
-                self.parameters[param] = locals()[param]
+                    self._parameters["type"] = locals()[param]
+                self._parameters[param] = locals()[param]
 
 
 class InfoSchema(SchemaBase):
@@ -217,4 +217,4 @@ class InfoSchema(SchemaBase):
         """
         for param in locals():
             if param != 'self':
-                self.parameters[param] = locals()[param]
+                self._parameters[param] = locals()[param]
