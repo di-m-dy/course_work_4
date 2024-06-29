@@ -6,7 +6,7 @@ en: Module for describing the scheme of different requests to the API.
 """
 
 from abc import ABC, abstractmethod
-from .api_errors import AttrValueRestrictionError
+from src.api_errors import AttrValueRestrictionError
 
 
 class SchemaBase(ABC):
@@ -204,6 +204,5 @@ class InfoSchema(SchemaBase):
         :param locale: string, Locale
         :param host: string, Host
         """
-        for param in locals():
-            if param != 'self':
-                self._parameters[param] = locals()[param]
+        self._parameters["locale"] = locale
+        self._parameters["host"] = host

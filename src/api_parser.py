@@ -1,5 +1,5 @@
 """
-ru: Модуль для работы с API для парсинга данных различных сайтов.
+ru: Модуль для работы с API для выгрузки данных различных сайтов.
     Основа сделана на базе OpenAPI от hh.ru
 en: Module for working with API for parsing data from various sites.
     The basis is made on the basis of OpenAPI from hh.ru
@@ -9,12 +9,9 @@ en: Module for working with API for parsing data from various sites.
 from abc import ABC, abstractmethod
 import requests
 
-from .api_schemes import FindVacancySchema, FindEmployerSchema, InfoSchema
-from .api_errors import (
-    ObjectNotFoundError,
-    BadArgumentError,
-    AdditionalActionError,
-    UnknownError
+from src.api_schemes import FindVacancySchema, FindEmployerSchema, InfoSchema
+from src.api_errors import (
+    ApiQueryError
 )
 
 
@@ -41,7 +38,7 @@ class ApiBase(Api):
         It is recommended to use for inheritance, but you can use it independently.
         The base class works without request parameters.
     """
-    def __init__(self, scope):
+    def __init__(self, scope: str):
         """
         ru: Инициализация класса.
         en: Class initialization.
@@ -51,28 +48,28 @@ class ApiBase(Api):
         self._parameters = {}
 
     @property
-    def parameters(self):
+    def parameters(self) -> dict:
+        """
+        ru: Свойства параметров
+        en: Property of parameters
+        :return: dict
+        """
         return self._parameters
 
-    def _query(self):
+    def _query(self) -> dict:
+        """
+        ru: Метод запроса.
+        en: Request method.
+        :return: dict
+        """
         response = requests.get(self.scope, params=self.parameters)
         status = response.status_code
         if status == 200:
             return response.json()
         else:
-            type_ = response
-            if status == 400:
-                print(type_)
-                #raise BadArgumentError(type_)
-            elif status == 404:
-                print(type_)
-                #raise ObjectNotFoundError(type_)
-            elif status == 403:
-                print(type_)
-                #raise AdditionalActionError(type_)
-            else:
-                print(type_)
-                #raise UnknownError
+            type_ = response.reason
+            url = response.url
+            raise ApiQueryError(f"«{url}»: [{status}] {type_}")
 
 
 class ApiFindBase(ApiBase):
@@ -82,14 +79,25 @@ class ApiFindBase(ApiBase):
     en: Base class for working with search API.
         Defines methods for searching.
     """
-    def __init__(self, scope):
+    def __init__(self, scope: str):
         super().__init__(scope)
 
-    def find(self):
+    def find(self) -> dict:
+        """
+        ru: Метод поиска.
+        en: Search method.
+        :return: dict
+        """
         return self._query()
 
 
 class ApiFindVacancy(ApiFindBase, FindVacancySchema):
+    """
+    ru: Пользовательский ласс для поиска вакансий.
+        Использует в качестве миксин схему FindVacancySchema поиска вакансий из модуля api_schemes.
+    en: User class for searching for vacancies.
+        Uses the search scheme for vacancies from the api_schemes module as a mixin.
+    """
 
     def __init__(self):
         scope = "https://api.hh.ru/vacancies"
@@ -97,6 +105,12 @@ class ApiFindVacancy(ApiFindBase, FindVacancySchema):
 
 
 class ApiFindEmployer(ApiFindBase, FindEmployerSchema):
+    """
+    ru: Пользовательский класс для поиска работодателей.
+         Использует в качестве миксин схему FindEmployerSchema поиска работодателей из модуля api_schemes.
+    en: User class for searching for employers.
+        Uses the search scheme for employers from the api_schemes module as a mixin.
+    """
 
     def __init__(self):
         scope = "https://api.hh.ru/employers"
@@ -108,7 +122,7 @@ class ApiInfoBase(ApiBase):
         super().__init__(f"{scope}/{id_}")
 
     @property
-    def info(self):
+    def info(self) -> dict:
         return self._query()
 
 
@@ -124,11 +138,3 @@ class ApiInfoEmployer(ApiInfoBase, InfoSchema):
 
 class ApiDictionaryBase(ApiBase):
     pass
-
-
-if __name__ == "__main__":
-    # "https://api.hh.ru/" - 403
-    # "https://api.ru/" - requests.exceptions.ConnectionError
-    # "" - requests.exceptions.MissingSchema: Invalid URL
-    api = ApiBase("")
-    print(api._query())
