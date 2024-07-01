@@ -9,7 +9,6 @@ en: Module for working with API for parsing data from various sites.
 from abc import ABC, abstractmethod
 import requests
 
-from src.api_schemes import FindVacancySchema, FindEmployerSchema, InfoSchema
 from src.api_errors import (
     ApiQueryError
 )
@@ -38,14 +37,15 @@ class ApiBase(Api):
         It is recommended to use for inheritance, but you can use it independently.
         The base class works without request parameters.
     """
-    def __init__(self, scope: str):
+    def __init__(self, scope: str, headers: dict = None):
         """
         ru: Инициализация класса.
         en: Class initialization.
         :param scope: request scope
         """
         self.scope = scope
-        self._parameters = {}
+        self.headers = headers or {}
+        self.__parameters = {}
 
     @property
     def parameters(self) -> dict:
@@ -54,15 +54,28 @@ class ApiBase(Api):
         en: Property of parameters
         :return: dict
         """
-        return self._parameters
+        return self.__parameters
 
-    def _query(self) -> dict:
+    @parameters.setter
+    def parameters(self, value: dict):
+        """
+        ru: Свойства параметров
+        en: Property of parameters
+        :param value: dict
+        """
+        self.__parameters = value
+
+    def _query(self) -> dict:  # todo: add generator or make mixin for pagination
         """
         ru: Метод запроса.
         en: Request method.
         :return: dict
         """
-        response = requests.get(self.scope, params=self.parameters)
+        response = requests.get(
+            self.scope,
+            headers=self.headers,
+            params=self.parameters
+        )
         status = response.status_code
         if status == 200:
             return response.json()
@@ -79,62 +92,77 @@ class ApiFindBase(ApiBase):
     en: Base class for working with search API.
         Defines methods for searching.
     """
-    def __init__(self, scope: str):
-        super().__init__(scope)
+    def __init__(self, scope: str, headers: dict = None):
+        self.headers = headers or {}
+        super().__init__(scope, self.headers)
 
-    def find(self) -> dict:
+    def find(self, **kwargs) -> dict:
         """
         ru: Метод поиска.
         en: Search method.
         :return: dict
         """
+        self.parameters = kwargs
         return self._query()
-
-
-class ApiFindVacancy(ApiFindBase, FindVacancySchema):
-    """
-    ru: Пользовательский ласс для поиска вакансий.
-        Использует в качестве миксин схему FindVacancySchema поиска вакансий из модуля api_schemes.
-    en: User class for searching for vacancies.
-        Uses the search scheme for vacancies from the api_schemes module as a mixin.
-    """
-
-    def __init__(self):
-        scope = "https://api.hh.ru/vacancies"
-        super().__init__(scope)
-
-
-class ApiFindEmployer(ApiFindBase, FindEmployerSchema):
-    """
-    ru: Пользовательский класс для поиска работодателей.
-         Использует в качестве миксин схему FindEmployerSchema поиска работодателей из модуля api_schemes.
-    en: User class for searching for employers.
-        Uses the search scheme for employers from the api_schemes module as a mixin.
-    """
-
-    def __init__(self):
-        scope = "https://api.hh.ru/employers"
-        super().__init__(scope)
 
 
 class ApiInfoBase(ApiBase):
-    def __init__(self, scope, id_):
-        super().__init__(f"{scope}/{id_}")
+    def __init__(self, scope, id_, headers=None):
+        self.headers = headers or {}
+        super().__init__(f"{scope}/{id_}", headers)
 
-    @property
-    def info(self) -> dict:
+    def info(self, id_: int | str, **kwargs) -> dict:
+        self.parameters = kwargs
         return self._query()
 
 
-class ApiInfoVacancy(ApiInfoBase, InfoSchema):
-    def __init__(self, id_):
-        super().__init__("https://api.hh.ru/vacancies", id_)
+class JobObjectBase(ABC):
+    @classmethod
+    @abstractmethod
+    def create(cls, **kwargs):
+        pass
 
 
-class ApiInfoEmployer(ApiInfoBase, InfoSchema):
-    def __init__(self, id_):
-        super().__init__("https://api.hh.ru/employers", id_)
+class JobObject(JobObjectBase):
+    def __init__(self, **kwargs):
+        self.__dict__ = self.rename_built_keys(**kwargs)
+
+    @staticmethod
+    def rename_built_keys(**kwargs):
+        """
+        ru: Переименование ключей, если они совпадают с ключевыми словами Python.
+        en: Renaming keys if they match Python keywords.
+        """
+        arguments = {}
+        builtins_names = ["id", "type", "from"]
+        for key in kwargs.keys():
+            if key in builtins_names:
+                arguments[f"{key}_"] = kwargs[key]
+            else:
+                arguments[key] = kwargs[key]
+        return arguments
+
+    @classmethod
+    def create(cls, **kwargs):
+        return cls(**cls.rename_built_keys(**kwargs))
 
 
-class ApiDictionaryBase(ApiBase):
-    pass
+class GenerateObjectsListBase(ABC):
+    @abstractmethod
+    def get_object(self):
+        pass
+
+    @abstractmethod
+    def generate(self):
+        pass
+
+
+class GenerateObjectsList(GenerateObjectsListBase):
+    def __init__(self, items: list[dict]):
+        self.items = items
+
+    def get_object(self):
+        return JobObjectBase
+
+    def generate(self):
+        return [self.get_object().create(**obj) for obj in self.items]
