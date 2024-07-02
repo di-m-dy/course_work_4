@@ -255,7 +255,7 @@ class HHSalary(JobObject):  # todo: add validation for all fields
             from_: int,
             to: int,
             currency: str,
-            **kwargs
+            **kwargs  # todo: check gross field
     ):
         self.from_ = from_
         self.to = to
@@ -412,16 +412,3 @@ class HHGenerateEmployersList(GenerateObjectsList):
 
     def get_object(self):
         return HHEmployer
-
-
-if __name__ == "__main__":
-    search = HHFindVacancy()
-    data = search.find(text="Режиссер театр", only_with_salary=True, per_page=10, page=0)
-    vacancies = HHGenerateVacanciesList(data["items"])
-    for i in vacancies.generate():
-        print("Работодатель: ", i.employer.name)
-        print("Ссылка: ", i.alternate_url)
-        print("Вакансия: ", i.name)
-        print("Зарплата: ", str(i.salary))
-        print(i.salary.__dict__)
-        print('='*50)
