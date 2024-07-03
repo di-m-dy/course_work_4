@@ -65,7 +65,7 @@ class ApiBase(Api):
         """
         self.__parameters = value
 
-    def _query(self) -> dict:  # todo: add generator or make mixin for pagination
+    def _query(self) -> dict:
         """
         ru: Метод запроса.
         en: Request method.
@@ -123,7 +123,7 @@ class JobObjectBase(ABC):
         pass
 
 
-class JobObject(JobObjectBase):
+class JobObject(JobObjectBase):  # todo: add method for return object as dict
     def __init__(self, **kwargs):
         self.__dict__ = self.rename_built_keys(**kwargs)
 
@@ -145,6 +145,18 @@ class JobObject(JobObjectBase):
     @classmethod
     def create(cls, **kwargs):
         return cls(**cls.rename_built_keys(**kwargs))
+
+    def get_dict(self):
+        built_keys = ["id_", "type_", "from_"]
+        result = {}
+        for key in self.__dict__.keys():
+            if key.startswith("_"):
+                continue
+            if key in built_keys:
+                result[key[:-1]] = self.__dict__[key]
+            else:
+                result[key] = self.__dict__[key]
+        return result
 
 
 class GenerateObjectsListBase(ABC):

@@ -13,7 +13,7 @@ from src.api_parser import GenerateObjectsList
 
 SCOPES = {
     "find_vacancies": "https://api.hh.ru/vacancies",
-    "find_employers:": "https://api.hh.ru/employers",
+    "find_employers": "https://api.hh.ru/employers",
     "info_vacancy": "https://api.hh.ru/vacancies",
     "info_employer": "https://api.hh.ru/employers"
 }
@@ -255,18 +255,35 @@ class HHSalary(JobObject):  # todo: add validation for all fields
             from_: int,
             to: int,
             currency: str,
-            **kwargs  # todo: check gross field
+            **kwargs
     ):
         self.from_ = from_
         self.to = to
         self.currency = currency
-        super().__init__(from_=from_, to=to, currency=currency)
+        self.additional = kwargs
+        super().__init__(from_=from_, to=to, currency=currency, additional=kwargs)
 
     def __lt__(self, other):
-        return self.from_ < other.from_  # todo: add algorithm for comparing salaries
+        self_list = [self.from_, self.to]
+        other_list = [other.from_, other.to]
+        if all(self_list) and all(other_list):
+            return sum(self_list) / 2 < sum(other_list) / 2
+        elif all(self_list) and any(other_list):
+            return sum(self_list) / 2 < (other.from_ or other.to)
+        elif any(self_list) and all(other_list):
+            return (self.from_ or self.to) < sum(other_list) / 2
+        return (self.from_ or self.to) < (other.from_ or other.to)
 
     def __gt__(self, other):
-        return self.from_ > other.from_  # todo: add algorithm for comparing salaries
+        self_list = [self.from_, self.to]
+        other_list = [other.from_, other.to]
+        if all(self_list) and all(other_list):
+            return sum(self_list) / 2 > sum(other_list) / 2
+        elif all(self_list) and any(other_list):
+            return sum(self_list) / 2 > (other.from_ or other.to)
+        elif any(self_list) and all(other_list):
+            return (self.from_ or self.to) > sum(other_list) / 2
+        return (self.from_ or self.to) > (other.from_ or other.to)
 
     def __str__(self):
         if self.from_ and self.to:
@@ -300,7 +317,10 @@ class HHEmployer(JobObject):  # todo: add validation for all fields
             **kwargs
 
     ):
-
+        self.name = name
+        self.site_url = site_url
+        self.area = area
+        additional = kwargs
         super().__init__(
             id_=id_,
             name=name,
@@ -312,8 +332,14 @@ class HHEmployer(JobObject):  # todo: add validation for all fields
             site_url=site_url,
             area=area,
             industries=industries,
-            insider_interview=insider_interview
+            insider_interview=insider_interview,
+            additional=additional
         )
+
+    def __str__(self):
+        url = f"\nСсылка работодателя: {self.alternate_url}" if self.alternate_url else ""
+        area = f" ({self.area['name']})" if self.area else ""
+        return f"Работодатель: {self.name}{area}{url}"
 
 
 class HHVacancy(JobObject):  # todo: add validation for all fields
@@ -324,39 +350,42 @@ class HHVacancy(JobObject):  # todo: add validation for all fields
     def __init__(
             self,
             id_: int,
-            premium: bool,
             name: str,
-            department: dict,
-            has_test: bool,
-            response_letter_required: bool,
-            area: dict,
-            salary: dict | HHSalary,
-            type_: dict,
-            address: dict,
-            response_url: str,
-            published_at: str,
-            created_at: str,
-            archived: bool,
-            apply_alternate_url: str,
-            insider_interview: list,
-            alternate_url: str,
             employer: dict | HHEmployer,
-            contacts: dict,
-            schedule: dict,
-            working_days: list,
-            working_time_intervals: list,
-            working_time_modes: list,
-            accept_temporary: bool,
-            professional_roles: list,
-            accept_incomplete_resumes: bool,
-            experience: dict,
-            employment: dict,
+            salary: dict | HHSalary,
+            area: dict,
+            created_at: str,
+            published_at: str,
+            experience: dict | None,
+            employment: dict | None,
+            schedule: dict | None,
+            type_: dict,
+            alternate_url: str,
             description: str | None = None,
+            address: dict | None = None,
+            contacts: dict | None = None,
+            premium: bool = False,
+            department: dict | None = None,
+            has_test: bool = False,
+            response_letter_required: bool = False,
+            response_url: str | None = None,
+            archived: bool = False,
+            apply_alternate_url: str | None = None,
+            insider_interview: list | None = None,
+            working_days: list | None = None,
+            working_time_intervals: list | None = None,
+            working_time_modes: list | None = None,
+            accept_temporary: bool = False,
+            professional_roles: list | None = None,
+            accept_incomplete_resumes: bool | None = None,
             **kwargs
 
     ):
+        additional = kwargs
         employer = employer if isinstance(employer, HHEmployer) else HHEmployer.create(**employer)
         salary = salary if isinstance(salary, HHSalary) else HHSalary.create(**salary) if salary else None
+        self.name = name
+        self.published_at = published_at
         super().__init__(
             id_=id_,
             description=description,
@@ -386,8 +415,15 @@ class HHVacancy(JobObject):  # todo: add validation for all fields
             professional_roles=professional_roles,
             accept_incomplete_resumes=accept_incomplete_resumes,
             experience=experience,
-            employment=employment
+            employment=employment,
+            additional=additional
         )
+
+    def __str__(self):
+        url = f"\nСсылка вакансии: {self.alternate_url}" if self.alternate_url else ""
+        name = f"Вакансия: {self.name}" if self.name else ""
+        date = f"\nОпубликовано: {self.published_at}" if self.published_at else ""
+        return f"{name}{date}{url}"
 
 
 class HHGenerateVacanciesList(GenerateObjectsList):
@@ -412,3 +448,7 @@ class HHGenerateEmployersList(GenerateObjectsList):
 
     def get_object(self):
         return HHEmployer
+
+
+if __name__ == "__main__":
+    find_empl = HHFindEmployer()

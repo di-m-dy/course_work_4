@@ -78,13 +78,13 @@ class JsonDB(BaseDB):
             "REAL": float or None,
             "BLOB": bytes or None,
             "INTEGER NOT NULL": int,
-            "INTEGER PRIMARY KEY": int,
             "TEXT NOT NULL": str,
             "REAL NOT NULL": float,
-            "BLOB NOT NULL": bytes
+            "BLOB NOT NULL": bytes,
         }
 
-    def check_fields(self, fields_ref: dict, fields: dict):
+    @staticmethod
+    def check_key_fields(fields_ref: dict, fields: dict):
         """
         ru: Проверка полей на соответствие типам.
         en: Checking fields for compliance with types.
@@ -92,10 +92,19 @@ class JsonDB(BaseDB):
         :param fields: en: Fields / ru: Поля
         """
         if fields_ref.keys() != fields.keys():
-            raise TypeError("Fields do not match")
-        for key in fields:
-            if type(fields[key]) is not self.fields_types[fields_ref[key]]:
-                raise TypeError(f"Field {key} does not match the type")
+            return False
+        return True
+
+    def check_type_fields(self, fields_ref: dict, fields: dict):
+        """
+        ru: Проверка полей на соответствие типам.
+        en: Checking fields for compliance with types.
+        :param fields_ref: en: Reference fields / ru: Справочные поля
+        :param fields: en: Fields / ru: Поля
+        """
+        for field in fields:
+            if type(fields[field]) is not self.fields_types[fields_ref[field]]:
+                return False
         return True
 
     def check_area_name(self, area_name: str):
@@ -106,7 +115,7 @@ class JsonDB(BaseDB):
         """
         file_name = os.path.join(self.path, f"{area_name}.json")
         if not os.path.exists(file_name):
-            raise FileNotFoundError(f"File {area_name} does not exist")
+            return False
         return file_name
 
     def create_area(self, area_name: str, fields: dict):
@@ -117,6 +126,8 @@ class JsonDB(BaseDB):
         :param fields: en: Fields / ru: Поля
         """
         file_path = os.path.join(self.path, f"{area_name}.json")
+        if os.path.exists(file_path):
+            raise FileExistsError("File already exists")
         with open(file_path, 'w') as file:
             json.dump([fields], file, ensure_ascii=False, indent=4)
 
@@ -127,6 +138,8 @@ class JsonDB(BaseDB):
         :param area_name: en: Area name / ru: Название области
         """
         file_path = self.check_area_name(area_name)
+        if not file_path:
+            raise FileNotFoundError("File not found")
         os.remove(file_path)
 
     def add_value(self, area_name: str, data_dict: dict):
@@ -137,12 +150,17 @@ class JsonDB(BaseDB):
         :param data_dict: en: Data dictionary / ru: Словарь данных
         """
         file_path = self.check_area_name(area_name)
+        if not file_path:
+            raise FileNotFoundError("File not found")
         with open(file_path, 'r') as file:
             data = json.load(file)
-        if self.check_fields(data[0], data_dict):
-            data.append(data_dict)
-            with open(file_path, 'w') as file:
-                json.dump(data, file, ensure_ascii=False, indent=4)
+        if not self.check_key_fields(data[0], data_dict):
+            raise TypeError("Fields do not match")
+        if not self.check_type_fields(data[0], data_dict):
+            raise TypeError("Types do not match")
+        data.append(data_dict)
+        with open(file_path, 'w') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
 
     def update_value(self, area_name: str, key_name: str, value: any, where_key: str, where_value: any):
         """
@@ -155,6 +173,8 @@ class JsonDB(BaseDB):
         :param where_value: en: Where value / ru: Где значение
         """
         file_path = self.check_area_name(area_name)
+        if not file_path:
+            raise FileNotFoundError("File not found")
         with open(file_path, 'r') as file:
             data = json.load(file)
         for record in data:
@@ -170,6 +190,8 @@ class JsonDB(BaseDB):
         :params: value: en: Value / ru: Значение
         """
         file_path = self.check_area_name(area_name)
+        if not file_path:
+            raise FileNotFoundError("File not found")
         with open(file_path, 'r') as file:
             data = json.load(file)
         for record in data:
@@ -191,7 +213,6 @@ class JsonDB(BaseDB):
         with open(file_path, 'r') as file:
             data = json.load(file)
         if key_value:
-            return [record for record in data if record[key_value["key"]] == key_value["value"]]
+            return [record for record in data[1:] if record[key_value["key"]] == key_value["value"]]
         else:
-            return data
-# todo: add check unique key
+            return data[1:]
