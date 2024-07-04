@@ -21,16 +21,23 @@ Classes and methods:
 
 import os
 import sys
+
+import html2text
+
 from abc import ABC, abstractmethod
 from src.hh_parser import (
     HHFindVacancy,
     HHFindEmployer,
+    HHInfoVacancy,
+    HHInfoEmployer,
     HHVacancy,
     HHSalary,
     HHEmployer,
     HHGenerateVacanciesList,
     HHGenerateEmployersList
 )
+from src.data_base import JsonDB
+from src.utils import create_areas_for_db, save_vacancies_to_db, check_areas
 
 
 class WidgetCLIBase(ABC):
@@ -41,7 +48,6 @@ class WidgetCLIBase(ABC):
     @abstractmethod
     def get_callback(self, key: str):
         pass
-
 
 
 class WidgetCLI(WidgetCLIBase):
@@ -165,6 +171,9 @@ class UserInterface:
     def __init__(self):
         self.find_vacancy = HHFindVacancy()
         self.find_employer = HHFindEmployer()
+        self.html2text = html2text.HTML2Text()
+        self.db = JsonDB("data/json_db/")
+        check_areas(self.db)
 
     def start(self):
         header = "[Г]лавное [М]еню"
@@ -224,33 +233,70 @@ class UserInterface:
         widget = WidgetCLIField(header, description, self.quick_search_vacancy)
         widget.show()
 
-    def quick_search_vacancy(self, vacancy_name: str):
-        data = self.find_vacancy.find(text=vacancy_name)
+    def quick_search_vacancy(self, vacancy_name: str, page: int = 0, **kwargs):  #todo: передавать не название вакансии а словарь со всеми параметрами
+        data = self.find_vacancy.find(text=vacancy_name, page=page, **kwargs)
         vacancies = data["items"]
         page = data["page"]
+        pages = data["pages"]
         found = data["found"]
         obj_list = HHGenerateVacanciesList(vacancies).generate()
         header = f"Результаты поиска вакансий '{vacancy_name}':"
-        description = f"Найдено {found} вакансий на {page} странице."
+        description = f"Найдено {found} вакансий.\n{page + 1} страница из {pages}.\nВыберите вакансию для просмотра."
         items = [
             {
                 "text": f"{str(obj)}\n{str(obj.salary)}\n{str(obj.employer)}",
-                "action": self.show_info,
-                "args": {"vacancy": obj, "vacancy_name": vacancy_name}
+                "action": self.show_info_vacancy,
+                "args": {"vacancy": obj, "vacancy_name": vacancy_name, "page": page}
             } for obj in obj_list
         ]
+
+        next_page = {
+            "key": ">>",
+            "text": "следующая страница",
+            "action": self.quick_search_vacancy,
+            "args": {"page": page + 1, "vacancy_name": vacancy_name}
+        }
+        prev_page = {
+            "key": "<<",
+            "text": "предыдущая страница",
+            "action": self.quick_search_vacancy,
+            "args": {"page": page - 1, "vacancy_name": vacancy_name}
+        }
         footer = [
             {"key": "q", "text": "выйти", "action": self.find_vacancy_online, "args": {}},
-            {"key": ">>", "text": "следующая страница", "action": self.find_vacancy_online, "args": {}}
+            {"key": "s", "text": "сохранить страницу", "action": self.save_page_vacancies, "args": {"vacancies": vacancies, "page": page}}
         ]
+        if page > 0:
+            footer.append(prev_page)
+        if page < pages:
+            footer.append(next_page)
         widget = WidgetCLI(header, description, items, footer)
         widget.show()
 
-    def show_info(self, vacancy: HHVacancy, vacancy_name: str):
+    def show_info_vacancy(self, vacancy: HHVacancy, vacancy_name: str, page: int):
+        vacancy_info = HHInfoVacancy(vacancy.id_).info()
+        vacancy_description = self.html2text.handle(vacancy_info["description"])
+        salary = f"Зарплата: {str(vacancy.salary) if vacancy.salary else 'не указана'}"
+        employer = f"Работодатель: {str(vacancy.employer)}"
         header = f"Информация о вакансии '{vacancy.name}':"
-        description = str(vacancy)
+        description = f"{salary}\n{employer}\n\n{vacancy_description}"
         footer = [
-            {"key": "<", "text": "назад", "action": self.quick_search_vacancy, "args": {"vacancy_name": vacancy_name}}
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.quick_search_vacancy,
+                "args": {"vacancy_name": vacancy_name, "page": page}
+            }
+        ]
+        widget = WidgetCLI(header=header, description=description, footer=footer)
+        widget.show()
+
+    def save_page_vacancies(self, vacancies: list[HHVacancy], page: int):
+        save_vacancies_to_db(self.db, vacancies)
+        header = "Сохранение данных"
+        description = f"Страница {page} сохранена в базу данных."
+        footer = [
+            {"key": "<", "text": "назад", "action": self.quick_search_vacancy, "args": {}}
         ]
         widget = WidgetCLI(header=header, description=description, footer=footer)
         widget.show()
@@ -267,3 +313,8 @@ class UserInterface:
     def find_employer_local(self):
         pass
 
+    def save_all_vacancies(self, vacancy_name: str):
+        pass
+
+    def save_vacancy_info(self):
+        pass

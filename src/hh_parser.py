@@ -5,6 +5,8 @@ en: Module for describing the scheme of different requests to the API.
     Each class describes the attributes of parameters that can be used for the request.
 """
 
+import datetime
+
 from src.api_errors import AttrValueRestrictionError
 from src.api_parser import ApiFindBase, ApiInfoBase
 from src.api_parser import JobObject
@@ -255,13 +257,13 @@ class HHSalary(JobObject):  # todo: add validation for all fields
             from_: int,
             to: int,
             currency: str,
-            **kwargs
+            gross: bool = False,
     ):
         self.from_ = from_
         self.to = to
         self.currency = currency
-        self.additional = kwargs
-        super().__init__(from_=from_, to=to, currency=currency, additional=kwargs)
+        self.gross = gross
+        super().__init__(from_=from_, to=to, currency=currency, gross=gross)
 
     def __lt__(self, other):
         self_list = [self.from_, self.to]
@@ -308,32 +310,28 @@ class HHEmployer(JobObject):  # todo: add validation for all fields
             alternate_url: str,
             logo_urls: dict,
             accredited_it_employer: bool | None = None,
-            type_: str | None = None,
             description: str | None = None,
             site_url: str | None = None,
             area: dict | None = None,
-            industries: list | None = None,
-            insider_interview: list | None = None,
-            **kwargs
 
     ):
+        self.id_ = id_
         self.name = name
         self.site_url = site_url
         self.area = area
-        additional = kwargs
+        self.alternate_url = alternate_url
+        self.logo_urls = logo_urls
+        self.accredited_it_employer = accredited_it_employer
+        self.description = description
         super().__init__(
-            id_=id_,
-            name=name,
-            alternate_url=alternate_url,
-            logo_urls=logo_urls,
-            accredited_it_employer=accredited_it_employer,
-            type_=type_,
-            description=description,
-            site_url=site_url,
-            area=area,
-            industries=industries,
-            insider_interview=insider_interview,
-            additional=additional
+            id_=self.id_,
+            name=self.name,
+            alternate_url=self.alternate_url,
+            logo_urls=self.logo_urls,
+            accredited_it_employer=self.accredited_it_employer,
+            description=self.description,
+            site_url=self.site_url,
+            area=self.area,
         )
 
     def __str__(self):
@@ -342,7 +340,7 @@ class HHEmployer(JobObject):  # todo: add validation for all fields
         return f"Работодатель: {self.name}{area}{url}"
 
 
-class HHVacancy(JobObject):  # todo: add validation for all fields
+class HHVacancy(JobObject):
     """
     ru: Класс для описания схемы вакансии.
     en: Class for describing the vacancy scheme.
@@ -351,78 +349,49 @@ class HHVacancy(JobObject):  # todo: add validation for all fields
             self,
             id_: int,
             name: str,
-            employer: dict | HHEmployer,
-            salary: dict | HHSalary,
-            area: dict,
             created_at: str,
             published_at: str,
+            alternate_url: str,
+            employer: dict | HHEmployer,
+            salary: dict | HHSalary,
+            area: dict | None,
             experience: dict | None,
             employment: dict | None,
             schedule: dict | None,
-            type_: dict,
-            alternate_url: str,
             description: str | None = None,
-            address: dict | None = None,
-            contacts: dict | None = None,
-            premium: bool = False,
-            department: dict | None = None,
-            has_test: bool = False,
-            response_letter_required: bool = False,
-            response_url: str | None = None,
-            archived: bool = False,
-            apply_alternate_url: str | None = None,
-            insider_interview: list | None = None,
-            working_days: list | None = None,
-            working_time_intervals: list | None = None,
-            working_time_modes: list | None = None,
-            accept_temporary: bool = False,
-            professional_roles: list | None = None,
-            accept_incomplete_resumes: bool | None = None,
-            **kwargs
-
     ):
-        additional = kwargs
-        employer = employer if isinstance(employer, HHEmployer) else HHEmployer.create(**employer)
-        salary = salary if isinstance(salary, HHSalary) else HHSalary.create(**salary) if salary else None
+        self.employer = employer if isinstance(employer, HHEmployer) else HHEmployer.create(**employer)
+        self.salary = salary if isinstance(salary, HHSalary) else HHSalary.create(**salary) if salary else None
         self.name = name
+        self.created_at = created_at
         self.published_at = published_at
+        self.id_ = id_
+        self.alternate_url = alternate_url
+        self.area = area
+        self.experience = experience
+        self.employment = employment
+        self.schedule = schedule
+        self.description = description
         super().__init__(
             id_=id_,
-            description=description,
-            premium=premium,
-            name=name,
-            department=department,
-            has_test=has_test,
-            response_letter_required=response_letter_required,
-            area=area,
-            salary=salary,
-            type_=type_,
-            address=address,
-            response_url=response_url,
-            published_at=published_at,
-            created_at=created_at,
-            archived=archived,
-            apply_alternate_url=apply_alternate_url,
-            insider_interview=insider_interview,
-            alternate_url=alternate_url,
-            employer=employer,
-            contacts=contacts,
-            schedule=schedule,
-            working_days=working_days,
-            working_time_intervals=working_time_intervals,
-            working_time_modes=working_time_modes,
-            accept_temporary=accept_temporary,
-            professional_roles=professional_roles,
-            accept_incomplete_resumes=accept_incomplete_resumes,
-            experience=experience,
-            employment=employment,
-            additional=additional
+            description=self.description,
+            name=self.name,
+            area=self.area,
+            salary=self.salary,
+            published_at=self.published_at,
+            created_at=self.created_at,
+            alternate_url=self.alternate_url,
+            employer=self.employer,
+            schedule=self.schedule,
+            experience=self.experience,
+            employment=self.employment
         )
 
     def __str__(self):
+        date = datetime.datetime.fromisoformat(self.published_at).strftime("%d-%m-%Y")
         url = f"\nСсылка вакансии: {self.alternate_url}" if self.alternate_url else ""
         name = f"Вакансия: {self.name}" if self.name else ""
-        date = f"\nОпубликовано: {self.published_at}" if self.published_at else ""
+        date = f"\nОпубликовано: {date}" if self.published_at else ""
         return f"{name}{date}{url}"
 
 
@@ -431,8 +400,25 @@ class HHGenerateVacanciesList(GenerateObjectsList):
     ru: Класс для генерации списка объектов вакансий.
     en: Class for generating a list of vacancy objects.
     """
-    def __init__(self, items: list):
-        super().__init__(items)
+    def __init__(self, items: list[dict]):
+        valid_items = []
+        for item in items:
+            new_dict = {
+                "id_": item["id"],
+                "name": item["name"],
+                "created_at": item["created_at"],
+                "published_at": item["published_at"],
+                "alternate_url": item["alternate_url"],
+                "employer": item["employer"],
+                "salary": item["salary"],
+                "area": item["area"],
+                "experience": item["experience"],
+                "employment": item["employment"],
+                "schedule": item["schedule"],
+                "description": item.get("description")
+            }
+            valid_items.append(new_dict)
+        super().__init__(valid_items)
 
     def get_object(self):
         return HHVacancy
@@ -448,7 +434,3 @@ class HHGenerateEmployersList(GenerateObjectsList):
 
     def get_object(self):
         return HHEmployer
-
-
-if __name__ == "__main__":
-    find_empl = HHFindEmployer()

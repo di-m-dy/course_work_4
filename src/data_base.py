@@ -35,6 +35,10 @@ class BaseDB(ABC):
         pass
 
     @abstractmethod
+    def check_area_name(self, area_name: str):
+        pass
+
+    @abstractmethod
     def delete_area(self, area_name: str):
         pass
 
@@ -76,6 +80,7 @@ class JsonDB(BaseDB):
             "INTEGER": int or None,
             "TEXT": str or None,
             "REAL": float or None,
+            "BOOLEAN": bool,
             "BLOB": bytes or None,
             "INTEGER NOT NULL": int,
             "TEXT NOT NULL": str,
@@ -180,6 +185,8 @@ class JsonDB(BaseDB):
         for record in data:
             if record[where_key] == where_value:
                 record[key_name] = value
+        with open(file_path, 'w') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
 
     def delete_value(self, area_name: str, key_name: str, value: any):
         """
@@ -197,6 +204,8 @@ class JsonDB(BaseDB):
         for record in data:
             if record[key_name] == value:
                 data.remove(record)
+        with open(file_path, 'w') as file:
+            json.dump(data, file, ensure_ascii=False, indent=4)
 
     def select_value(self, area_name, key_value: dict = None):
         """
