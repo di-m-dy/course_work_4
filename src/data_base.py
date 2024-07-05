@@ -38,6 +38,11 @@ class BaseDB(ABC):
     def check_area_name(self, area_name: str):
         pass
 
+    @staticmethod
+    @abstractmethod
+    def check_key_fields(fields_ref: dict, fields: dict):
+        pass
+
     @abstractmethod
     def delete_area(self, area_name: str):
         pass
@@ -77,11 +82,12 @@ class JsonDB(BaseDB):
             os.makedirs(path)
             self.path = path
         self.fields_types = {
-            "INTEGER": int or None,
-            "TEXT": str or None,
-            "REAL": float or None,
+            "INTEGER": int | None,
+            "TEXT": str | None,
+            "REAL": float | None,
             "BOOLEAN": bool,
-            "BLOB": bytes or None,
+            "BOOLEAN NOT NULL": bool | None,
+            "BLOB": bytes | None,
             "INTEGER NOT NULL": int,
             "TEXT NOT NULL": str,
             "REAL NOT NULL": float,
@@ -108,7 +114,8 @@ class JsonDB(BaseDB):
         :param fields: en: Fields / ru: Поля
         """
         for field in fields:
-            if type(fields[field]) is not self.fields_types[fields_ref[field]]:
+            if not isinstance(fields[field], self.fields_types[fields_ref[field]]):
+                print(fields[field], self.fields_types[fields_ref[field]])
                 return False
         return True
 
@@ -163,9 +170,10 @@ class JsonDB(BaseDB):
             raise TypeError("Fields do not match")
         if not self.check_type_fields(data[0], data_dict):
             raise TypeError("Types do not match")
-        data.append(data_dict)
-        with open(file_path, 'w') as file:
-            json.dump(data, file, ensure_ascii=False, indent=4)
+        if data_dict not in data:
+            data.append(data_dict)
+            with open(file_path, 'w') as file:
+                json.dump(data, file, ensure_ascii=False, indent=4)
 
     def update_value(self, area_name: str, key_name: str, value: any, where_key: str, where_value: any):
         """

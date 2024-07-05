@@ -1,8 +1,23 @@
 """
-ru: Модуль для описания схемы разных запросов к API.
-    Каждый класс описывает аттрибуты параметров, которые могут быть использованы для запроса.
-en: Module for describing the scheme of different requests to the API.
-    Each class describes the attributes of parameters that can be used for the request.
+ru: Модуль для работы с API hh.ru.
+    Также модуль содержит необходимые классы для объектов работы с данными:
+        Vacancy: описание вакансии
+        Employer: описание работодателя
+        Salary: описание зарплаты
+        Area: описание локации
+        Experience: описание опыта работы
+        Employment: описание типа занятости
+        Schedule: описание графика работы
+
+en: Module for working with the hh.ru API.
+    The module also contains the necessary classes for data objects:
+        Vacancy: vacancy description
+        Employer: employer description
+        Salary: salary description
+        Area: location description
+        Experience: work experience description
+        Employment: employment type description
+        Schedule: work schedule description
 """
 
 import datetime
@@ -247,6 +262,80 @@ class HHInfoEmployer(ApiInfoBase):
         return super().info(self.id_, locale=locale, host=host)
 
 
+class HHSchedule(JobObject):
+    """
+    ru: Класс для описания схемы графика работы.
+    en: Class for describing the work schedule scheme.
+    """
+    def __init__(
+            self,
+            id_: str,
+            name: str
+    ):
+        self.id_ = id_
+        self.name = name
+        super().__init__(id_=id_, name=name)
+
+    def __str__(self):
+        return f"График работы: {self.name}"
+
+
+class HHExperience(JobObject):
+    """
+    ru: Класс для описания схемы опыта работы.
+    en: Class for describing the work experience scheme.
+    """
+    def __init__(
+            self,
+            id_: str,
+            name: str
+    ):
+        self.id_ = id_
+        self.name = name
+        super().__init__(id_=id_, name=name)
+
+    def __str__(self):
+        return f"Опыт работы: {self.name}"
+
+
+class HHEmployment(JobObject):
+    """
+    ru: Класс для описания схемы типа занятости.
+    en: Class for describing the employment type scheme.
+    """
+    def __init__(
+            self,
+            id_: str,
+            name: str
+    ):
+        self.id_ = id_
+        self.name = name
+        super().__init__(id_=id_, name=name)
+
+    def __str__(self):
+        return f"Тип занятости: {self.name}"
+
+
+class HHArea(JobObject):
+    """
+    ru: Класс для описания схемы локации.
+    en: Class for describing the location scheme.
+    """
+    def __init__(
+            self,
+            id_: str,
+            name: str,
+            url: str,
+    ):
+        self.id_ = id_
+        self.name = name
+        self.url = url
+        super().__init__(id_=id_, name=name, url=self.url)
+
+    def __str__(self):
+        return f"Локация: {self.name}"
+
+
 class HHSalary(JobObject):  # todo: add validation for all fields
     """
     ru: Класс для описания схемы зарплаты.
@@ -298,29 +387,55 @@ class HHSalary(JobObject):  # todo: add validation for all fields
             return "Уровень дохода не указан"
 
 
-class HHEmployer(JobObject):  # todo: add validation for all fields
+class HHEmployerUrlLogo(JobObject):
+    """
+    ru: Класс для описания схемы логотипа работодателя.
+    en: Class for describing the employer logo scheme.
+    """
+    def __init__(
+            self,
+            **kwargs
+    ):
+        self.original = kwargs.get("original")
+        self.size90 = kwargs.get("90")
+        self.size240 = kwargs.get("240")
+        super().__init__(
+            original=self.original,
+            size90=self.size90,
+            size240=self.size240
+        )
+
+    def get_dict(self):
+        return {
+            "original": self.original,
+            "90": self.size90,
+            "240": self.size240
+        }
+
+
+class HHEmployer(JobObject):
     """
     ru: Класс для описания схемы работодателя.
     en: Class for describing the employer scheme.
     """
     def __init__(
             self,
-            id_: int,
+            id_: str,
             name: str,
             alternate_url: str,
-            logo_urls: dict,
-            accredited_it_employer: bool | None = None,
+            logo_urls: dict | HHEmployerUrlLogo = None,
+            accredited_it_employer: bool = False,
             description: str | None = None,
             site_url: str | None = None,
-            area: dict | None = None,
+            **kwargs
 
     ):
+        self.additional = kwargs
         self.id_ = id_
         self.name = name
         self.site_url = site_url
-        self.area = area
         self.alternate_url = alternate_url
-        self.logo_urls = logo_urls
+        self.logo_urls = logo_urls if isinstance(logo_urls, HHEmployerUrlLogo) else HHEmployerUrlLogo(**logo_urls) if logo_urls else None
         self.accredited_it_employer = accredited_it_employer
         self.description = description
         super().__init__(
@@ -331,13 +446,12 @@ class HHEmployer(JobObject):  # todo: add validation for all fields
             accredited_it_employer=self.accredited_it_employer,
             description=self.description,
             site_url=self.site_url,
-            area=self.area,
+            additional=self.additional
         )
 
     def __str__(self):
         url = f"\nСсылка работодателя: {self.alternate_url}" if self.alternate_url else ""
-        area = f" ({self.area['name']})" if self.area else ""
-        return f"Работодатель: {self.name}{area}{url}"
+        return f"Работодатель: {self.name}{url}"
 
 
 class HHVacancy(JobObject):
@@ -347,7 +461,7 @@ class HHVacancy(JobObject):
     """
     def __init__(
             self,
-            id_: int,
+            id_: str,
             name: str,
             created_at: str,
             published_at: str,
@@ -359,6 +473,7 @@ class HHVacancy(JobObject):
             employment: dict | None,
             schedule: dict | None,
             description: str | None = None,
+            **kwargs
     ):
         self.employer = employer if isinstance(employer, HHEmployer) else HHEmployer.create(**employer)
         self.salary = salary if isinstance(salary, HHSalary) else HHSalary.create(**salary) if salary else None
@@ -367,11 +482,15 @@ class HHVacancy(JobObject):
         self.published_at = published_at
         self.id_ = id_
         self.alternate_url = alternate_url
-        self.area = area
-        self.experience = experience
-        self.employment = employment
-        self.schedule = schedule
+        self.area = area if isinstance(area, HHArea) else HHArea.create(**area) if area else None
+        self.experience = experience if isinstance(experience, HHExperience) \
+            else HHExperience.create(**experience) if experience else None
+        self.employment = employment if isinstance(employment, HHEmployment) \
+            else HHEmployment.create(**employment) if employment else None
+        self.schedule = schedule if isinstance(schedule, HHSchedule)\
+            else HHSchedule.create(**schedule) if schedule else None
         self.description = description
+        self.additional = kwargs
         super().__init__(
             id_=id_,
             description=self.description,
@@ -384,14 +503,15 @@ class HHVacancy(JobObject):
             employer=self.employer,
             schedule=self.schedule,
             experience=self.experience,
-            employment=self.employment
+            employment=self.employment,
+            additional=self.additional
         )
 
     def __str__(self):
-        date = datetime.datetime.fromisoformat(self.published_at).strftime("%d-%m-%Y")
-        url = f"\nСсылка вакансии: {self.alternate_url}" if self.alternate_url else ""
         name = f"Вакансия: {self.name}" if self.name else ""
-        date = f"\nОпубликовано: {date}" if self.published_at else ""
+        date_to_other_view = datetime.datetime.fromisoformat(self.published_at).strftime("%d-%m-%Y")
+        date = f"\nОпубликовано: {date_to_other_view}" if self.published_at else ""
+        url = f"\nСсылка вакансии: {self.alternate_url}" if self.alternate_url else ""
         return f"{name}{date}{url}"
 
 
