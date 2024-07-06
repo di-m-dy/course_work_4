@@ -27,7 +27,7 @@ from src.api_parser import ApiFindBase, ApiInfoBase
 from src.api_parser import JobObject
 from src.api_parser import GenerateObjectsList
 
-
+# API URL
 SCOPES = {
     "find_vacancies": "https://api.hh.ru/vacancies",
     "find_employers": "https://api.hh.ru/employers",
@@ -35,13 +35,14 @@ SCOPES = {
     "info_employer": "https://api.hh.ru/employers"
 }
 
+# API HEADERS
 HEADERS = {"User-Agent": "HH-User-Agent"}
 
 
 class HHFindVacancy(ApiFindBase):
     """
-    ru: Класс для описания схемы запроса вакансий.
-    en: Class for describing the vacancy request scheme.
+    ru: Класс для поиска вакансий.
+    en: Class for searching for vacancies.
     """
     def __init__(self):
         self.scope = SCOPES["find_vacancies"]
@@ -85,42 +86,42 @@ class HHFindVacancy(ApiFindBase):
             host: str = "hh.ru"
     ):
         """
-        ru: Метод для установки параметров запроса.
-        en: Method for setting request parameters.
+        ru: Метод поиска с параметрами запроса
+        en: Search method with request parameters
 
-        :param per_page: integer <= 100, Count of items on page
-        :param page: integer, Number of page
-        :param text: string, Search query at search_field
-        :param search_field: string, Search field (for text area, if None = all fields)
-        :param experience: string, Experience level (text id from ApiDictionary(VacancyExperience))
-        :param employment: string, Employment type (text id from ApiDictionary(VacancyEmployment))
-        :param schedule: string, Schedule type (text id from ApiDictionary(VacancySchedule))
-        :param area: string, Area id from ApiDictionary(Area)
-        :param industry: string, Industry id from ApiDictionary(Industry)
-        :param employer_id: string, Employer id
-        :param currency: string, Currency id from ApiDictionary(Currency)
-        :param salary: string, Salary id from ApiDictionary(Salary)
-        :param label: string, Label id from ApiDictionary(VacancyLabel)
-        :param only_with_salary: boolean, Only with salary
-        :param period: integer, Number of days within which the search is performed for vacancies
-        :param date_from: string, Date that limits the range of publication dates for vacancies from below.
-        :param date_to: string, Date that limits the range of publication dates for vacancies from above.
-        :param top_lat: float, The upper latitude boundary. In the vacancy address is used.
-        :param bottom_lat: float, The lower latitude boundary. In the vacancy address is used.
-        :param left_lng: float, The left longitude boundary. In the vacancy address is used.
-        :param right_lng: float, The right longitude boundary. In the vacancy address is used.
-        :param order_by: string, Sort order (text id from ApiDictionary(VacancySearchOrder))
-        :param sort_point_lat: float, Sort point latitude for order_by
-        :param sort_point_lng: float, Sort point longitude for order_by
-        :param clusters: boolean, Return clusters
-        :param describe_arguments: boolean, Return describe arguments
-        :param no_magic: boolean, No magic
-        :param premium: boolean, Premium
-        :param responses_count_enabled: boolean, Responses count enabled
-        :param part_time: string, Part time
-        :param accept_temporary: boolean, Accept temporary
-        :param locale: string, Locale
-        :param host: string, Host
+        :param per_page: integer <= 100, Количество элементов на странице
+        :param page: integer, Количество страниц
+        :param text: string, Текст поиска
+        :param search_field: string, Поиск по полям (если не указано, то по всем полям)
+        :param experience: string, Опыт работы (по id - https://api.hh.ru/dictionaries)
+        :param employment: string, Тип занятости (по id - https://api.hh.ru/dictionaries)
+        :param schedule: string, График работы (по id - https://api.hh.ru/dictionaries)
+        :param area: string, Локация (по id - https://api.hh.ru/areas)
+        :param industry: string, Отрасль (по id - https://api.hh.ru/dictionaries)
+        :param employer_id: string, Id работодателя
+        :param currency: string, Валюта (по id - https://api.hh.ru/dictionaries)
+        :param salary: string, Зарплата
+        :param label: string, Метка (по id - https://api.hh.ru/dictionaries)
+        :param only_with_salary: boolean, Только с зарплатой
+        :param period: integer, Период публикации вакансии
+        :param date_from: string, Дата, ограничивающая диапазон дат публикации вакансий снизу
+        :param date_to: string, Дата, ограничивающая диапазон дат публикации вакансий сверху
+        :param top_lat: float, Верхняя широта границы. В адресе вакансии используется.
+        :param bottom_lat: float, Нижняя широта границы. В адресе вакансии используется.
+        :param left_lng: float, Левая долгота границы. В адресе вакансии используется.
+        :param right_lng: float, Правая долгота границы. В адресе вакансии используется.
+        :param order_by: string, Сортировка (по id - https://api.hh.ru/dictionaries)
+        :param sort_point_lat: float, Для сортировки по удаленности - широта
+        :param sort_point_lng: float, Для сортировки по удаленности - долгота
+        :param clusters: boolean, Кластеры
+        :param describe_arguments: boolean, Описать аргументы  # TODO: Использовать в клиентском коде для коллбеков
+        :param no_magic: boolean,
+        :param premium: boolean, Премиум вакансии
+        :param responses_count_enabled: boolean, Количество откликов
+        :param part_time: string, Частичная занятость
+        :param accept_temporary: boolean, Принимаются временные вакансии
+        :param locale: string, Локализация
+        :param host: string, Хост
         """
         if not 1 <= per_page <= 100:
             raise AttrValueRestrictionError()
@@ -163,8 +164,8 @@ class HHFindVacancy(ApiFindBase):
 
 class HHFindEmployer(ApiFindBase):
     """
-    ru: Класс для описания схемы запроса работодателей.
-    en: Class for describing the employer request scheme.
+    ru: Класс для поиска работодателей.
+    en: Class for searching for employers.
     """
     def __init__(self):
         self.scope = SCOPES["find_employers"]
@@ -179,23 +180,23 @@ class HHFindEmployer(ApiFindBase):
             only_with_vacancies: bool = False,
             sort_by: str = None,
             page: int = 0,
-            per_page: int = 20,
+            per_page: int = 10,
             locale: str = "RU",
             host: str = "hh.ru"
     ):
         """
-        ru: Метод для установки параметров запроса.
-        en: Method for setting request parameters.
+        ru: Метод поиска с параметрами запроса.
+        en: Search method with request parameters.
 
-        :param text: string, Search text
-        :param area: string, Area id from ApiDictionary(Area)
-        :param type_: string, Employer type id from ApiDictionary(EmployerType)
-        :param only_with_vacancies: boolean, Only with vacancies
-        :param sort_by: string, Sort by name or by vacancies open
-        :param page: integer, Number of page
-        :param per_page: integer, Count of items on page
-        :param locale: string, Locale
-        :param host: string, Host
+        :param text: string, Текст поиска
+        :param area: string, Локация (по id - https://api.hh.ru/areas)
+        :param type_: string, Тип работодателя (по id - https://api.hh.ru/dictionaries)
+        :param only_with_vacancies: boolean, Только с вакансиями
+        :param sort_by: string, Сортировка по имени или по открытым вакансиям
+        :param page: integer, Номер страницы
+        :param per_page: integer, Количество элементов на странице
+        :param locale: string, Локализация
+        :param host: string, Хост
         """
         return super().find(
             text=text,
@@ -212,10 +213,13 @@ class HHFindEmployer(ApiFindBase):
 
 class HHInfoVacancy(ApiInfoBase):
     """
-    ru: Класс для описания схемы запроса информации о вакансии.
-    en: Class for describing the information request scheme about the vacancy.
+    ru: Класс для запроса информации о вакансии.
+    en: Class for requesting information about a vacancy.
     """
     def __init__(self, id_: int):
+        """
+        :param id_: integer, Id вакансии
+        """
         self.id_ = id_
         self.scope = SCOPES["info_vacancy"]
         self.headers = HEADERS
@@ -225,9 +229,9 @@ class HHInfoVacancy(ApiInfoBase):
             self,
             locale: str = "RU",
             host: str = "hh.ru"
-    ):
+    ) -> dict:
         """
-        ru: Метод для установки параметров запроса.
+        ru: Метод для возврата информации о вакансии с параметрами
         en: Method for setting request parameters.
 
         :param locale: string, Locale
@@ -238,8 +242,8 @@ class HHInfoVacancy(ApiInfoBase):
 
 class HHInfoEmployer(ApiInfoBase):
     """
-    ru: Класс для описания схемы запроса информации о работодателе.
-    en: Class for describing the information request scheme about the employer.
+    ru: Класс для запроса информации о работодателе.
+    en: Class for requesting information about an employer.
     """
     def __init__(self, id_: int):
         self.id_ = id_
@@ -251,9 +255,9 @@ class HHInfoEmployer(ApiInfoBase):
             self,
             locale: str = "RU",
             host: str = "hh.ru"
-    ):
+    ) -> dict:
         """
-        ru: Метод для установки параметров запроса.
+        ru: Метод для возврата информации о работодателе с параметрами
         en: Method for setting request parameters.
 
         :param locale: string, Locale
@@ -264,14 +268,18 @@ class HHInfoEmployer(ApiInfoBase):
 
 class HHSchedule(JobObject):
     """
-    ru: Класс для описания схемы графика работы.
-    en: Class for describing the work schedule scheme.
+    ru: Класс для создания объекта графика работы.
+    en: Class for creating a work schedule object.
     """
     def __init__(
             self,
             id_: str,
             name: str
     ):
+        """
+        :param id_: string, Id графика работы
+        :param name: string, Название графика работы
+        """
         self.id_ = id_
         self.name = name
         super().__init__(id_=id_, name=name)
@@ -282,14 +290,18 @@ class HHSchedule(JobObject):
 
 class HHExperience(JobObject):
     """
-    ru: Класс для описания схемы опыта работы.
-    en: Class for describing the work experience scheme.
+    ru: Класс для создания объекта опыта работы.
+    en: Class for creating a work experience object.
     """
     def __init__(
             self,
             id_: str,
             name: str
     ):
+        """
+        :param id_: string, Id опыта работы
+        :param name: string, Название опыта работы
+        """
         self.id_ = id_
         self.name = name
         super().__init__(id_=id_, name=name)
@@ -300,14 +312,18 @@ class HHExperience(JobObject):
 
 class HHEmployment(JobObject):
     """
-    ru: Класс для описания схемы типа занятости.
-    en: Class for describing the employment type scheme.
+    ru: Класс для создания объекта типа занятости.
+    en: Class for creating an employment type object.
     """
     def __init__(
             self,
             id_: str,
             name: str
     ):
+        """
+        :param id_: string, Id типа занятости
+        :param name: string, Название типа занятости
+        """
         self.id_ = id_
         self.name = name
         super().__init__(id_=id_, name=name)
@@ -318,8 +334,8 @@ class HHEmployment(JobObject):
 
 class HHArea(JobObject):
     """
-    ru: Класс для описания схемы локации.
-    en: Class for describing the location scheme.
+    ru: Класс для создания объекта локации.
+    en: Class for creating a location object.
     """
     def __init__(
             self,
@@ -327,6 +343,10 @@ class HHArea(JobObject):
             name: str,
             url: str,
     ):
+        """
+        :param id_: string, Id локации
+        :param name: string, Название локации
+        """
         self.id_ = id_
         self.name = name
         self.url = url
@@ -336,10 +356,10 @@ class HHArea(JobObject):
         return f"Локация: {self.name}"
 
 
-class HHSalary(JobObject):  # todo: add validation for all fields
+class HHSalary(JobObject):
     """
-    ru: Класс для описания схемы зарплаты.
-    en: Class for describing the salary scheme.
+    ru: Класс для создания объекта зарплаты.
+    en: Class for creating a salary object.
     """
     def __init__(
             self,
@@ -348,6 +368,12 @@ class HHSalary(JobObject):  # todo: add validation for all fields
             currency: str,
             gross: bool = False,
     ):
+        """
+        :param from_: integer, Зарплата от
+        :param to: integer, Зарплата до
+        :param currency: string, Валюта
+        :param gross: boolean, Налог
+        """
         self.from_ = from_
         self.to = to
         self.currency = currency
@@ -355,6 +381,8 @@ class HHSalary(JobObject):  # todo: add validation for all fields
         super().__init__(from_=from_, to=to, currency=currency, gross=gross)
 
     def __lt__(self, other):
+        if not other:
+            return False
         self_list = [self.from_, self.to]
         other_list = [other.from_, other.to]
         if all(self_list) and all(other_list):
@@ -366,6 +394,8 @@ class HHSalary(JobObject):  # todo: add validation for all fields
         return (self.from_ or self.to) < (other.from_ or other.to)
 
     def __gt__(self, other):
+        if not other:
+            return True
         self_list = [self.from_, self.to]
         other_list = [other.from_, other.to]
         if all(self_list) and all(other_list):
@@ -389,13 +419,18 @@ class HHSalary(JobObject):  # todo: add validation for all fields
 
 class HHEmployerUrlLogo(JobObject):
     """
-    ru: Класс для описания схемы логотипа работодателя.
-    en: Class for describing the employer logo scheme.
+    ru: Класс для создания объекта логотипа работодателя.
+    en: Class for creating an employer logo object.
     """
     def __init__(
             self,
             **kwargs
     ):
+        """
+        :param original: string, Оригинальный размер логотипа
+        :param 90: string, Размер 90x90
+        :param 240: string, Размер 240x240
+        """
         self.original = kwargs.get("original")
         self.size90 = kwargs.get("90")
         self.size240 = kwargs.get("240")
@@ -405,7 +440,7 @@ class HHEmployerUrlLogo(JobObject):
             size240=self.size240
         )
 
-    def get_dict(self):
+    def get_dict(self) -> dict:
         return {
             "original": self.original,
             "90": self.size90,
@@ -415,8 +450,8 @@ class HHEmployerUrlLogo(JobObject):
 
 class HHEmployer(JobObject):
     """
-    ru: Класс для описания схемы работодателя.
-    en: Class for describing the employer scheme.
+    ru: Класс для coздания объекта работодателя.
+    en: Class for creating an employer object.
     """
     def __init__(
             self,
@@ -430,6 +465,15 @@ class HHEmployer(JobObject):
             **kwargs
 
     ):
+        """
+        :param id_: string, Id работодателя
+        :param name: string, Название работодателя
+        :param alternate_url: string, Ссылка на работодателя
+        :param logo_urls: dict, Логотип работодателя
+        :param accredited_it_employer: boolean, Аккредитованный it-работодатель
+        :param description: string, Описание работодателя
+        :param site_url: string, Сайт работодателя
+        """
         self.additional = kwargs
         self.id_ = id_
         self.name = name
@@ -456,8 +500,8 @@ class HHEmployer(JobObject):
 
 class HHVacancy(JobObject):
     """
-    ru: Класс для описания схемы вакансии.
-    en: Class for describing the vacancy scheme.
+    ru: Класс для создания объекта вакансии.
+    en: Class for creating a vacancy object.
     """
     def __init__(
             self,
@@ -475,6 +519,21 @@ class HHVacancy(JobObject):
             description: str | None = None,
             **kwargs
     ):
+        """
+        :param id_: string, Id вакансии
+        :param name: string, Название вакансии
+        :param created_at: string, Дата создания вакансии
+        :param published_at: string, Дата публикации вакансии
+        :param alternate_url: string, Ссылка на вакансию
+        :param employer: dict, Работодатель
+        :param salary: dict, Зарплата
+        :param area: dict, Локация
+        :param experience: dict, Опыт работы
+        :param employment: dict, Тип занятости
+        :param schedule: dict, График работы
+        :param description: string, Описание вакансии
+        :param kwargs: dict, Дополнительные параметры
+        """
         self.employer = employer if isinstance(employer, HHEmployer) else HHEmployer.create(**employer)
         self.salary = salary if isinstance(salary, HHSalary) else HHSalary.create(**salary) if salary else None
         self.name = name
@@ -521,6 +580,10 @@ class HHGenerateVacanciesList(GenerateObjectsList):
     en: Class for generating a list of vacancy objects.
     """
     def __init__(self, items: list[dict]):
+        """
+        :param items: list, Список словарей с параметрами вакансий
+        """
+        # валидация словарей / validation of dictionaries
         valid_items = []
         for item in items:
             new_dict = {
@@ -541,6 +604,10 @@ class HHGenerateVacanciesList(GenerateObjectsList):
         super().__init__(valid_items)
 
     def get_object(self):
+        """
+        ru: Фабричный метод для создания объекта вакансии.
+        en: Factory method for creating a vacancy object.
+        """
         return HHVacancy
 
 
@@ -549,8 +616,28 @@ class HHGenerateEmployersList(GenerateObjectsList):
     ru: Класс для генерации списка объектов работодателей.
     en: Class for generating a list of employer objects.
     """
-    def __init__(self, items: list):
+    def __init__(self, items: list[dict]):
+        """
+        :param items: list, Список словарей с параметрами работодателей
+        """
+        # валидация словарей / validation of dictionaries
+        valid_items = []
+        for item in items:
+            new_dict = {
+                "id_": item["id"],
+                "name": item["name"],
+                "alternate_url": item["alternate_url"],
+                "logo_urls": item.get("logo_urls"),
+                "accredited_it_employer": item.get("accredited_it_employer"),
+                "description": item.get("description"),
+                "site_url": item.get("site_url")
+            }
+            valid_items.append(new_dict)
         super().__init__(items)
 
     def get_object(self):
+        """
+        ru: Фабричный метод для создания объекта работодателя.
+        en: Factory method for creating an employer object.
+        """
         return HHEmployer

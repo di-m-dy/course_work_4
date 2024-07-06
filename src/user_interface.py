@@ -1,22 +1,15 @@
 """
 ru: Модуль для работы с пользовательским интерфейсом в CLI.
-Классы и методы:
-    UserInterface:
-        start - запуск пользовательского интерфейса
-        stop - остановка пользовательского интерфейса
-        get_user_input - получение ввода пользователя
-        show_message - вывод сообщения пользователю
-        show_menu - вывод меню пользователю
-        show_table - вывод таблицы пользователю
-    en: Module for working with the user interface in CLI.
-Classes and methods:
-    UserInterface:
-        start - start user interface
-        stop - stop user interface
-        get_user_input - get user input
-        show_message - show message to user
-        show_menu - show menu to user
-        show_table - show table to user
+Классы:
+    WidgetCLI: шаблон для создания окон в CLI с колбэками пользовательских вводов
+    WidgetCLIField: шаблон для создания окон с полем ввода в CLI с коллбэком
+    UserInterface: главный класс для организации логики взаимодействия с пользователем
+
+en: Module for working with the user interface in CLI.
+Classes:
+    WidgetCLI: template for creating windows in CLI with user input callbacks
+    WidgetCLIField: template for creating windows with an input field in CLI with a callback
+    UserInterface: the main class for organizing the logic of interacting with the user
 """
 
 import os
@@ -25,22 +18,30 @@ import sys
 import html2text
 
 from abc import ABC, abstractmethod
+from src.config import DB_DIR
 from src.hh_parser import (
     HHFindVacancy,
     HHFindEmployer,
     HHInfoVacancy,
     HHInfoEmployer,
     HHVacancy,
-    HHSalary,
     HHEmployer,
     HHGenerateVacanciesList,
     HHGenerateEmployersList
 )
 from src.data_base import JsonDB
-from src.utils import create_areas_for_db, save_vacancies_to_db, check_areas
+from src.utils import CreateDB, WriteData, ReadData
+from src.api_errors import ApiQueryError
+from requests.exceptions import ConnectionError
 
 
 class WidgetCLIBase(ABC):
+    """
+    ru: Абстрактный класс для работы с CLI.
+        Определяет методы для отображения окна и получения колбэка.
+    en: Abstract class for working with CLI.
+        Defines methods for displaying a window and getting a callback.
+    """
     @abstractmethod
     def show(self):
         pass
@@ -53,21 +54,15 @@ class WidgetCLIBase(ABC):
 class WidgetCLI(WidgetCLIBase):
     """
     ru: Виджет для работы с CLI.
-        items - список словарей для отображения массива элементов:
-        [{"text": str, "action": function, "args": dict}]
-        footer - список словарей для дополнительных функций:
-        [{"key": str, "text": str, "action": function, "args": dict}]
     en: Widget for working with CLI.
-        items - list of dictionaries for displaying an array of elements:
-        [{"text": str, "action": function, "args": dict}]
-        footer - list of dictionaries for additional functions:
-        [{"key": str, "text": str, "action": function, "args": dict}]
-    :param header: заголовок
-    :param description: описание
-    :param items: элементы массива для отображения
-    :param footer: дополнительные функции в низу страницы
     """
     def __init__(self, header: str, description: str, items: list[dict] = None, footer: list[dict] = None):
+        """
+        :param header: заголовок
+        :param description: описание
+        :param items: элементы массива для отображения [{"text": str, "action": function, "args": dict}]
+        :param footer: дополнительные функции внизу страницы [{"key": str, "text": str, "action": function, "args": dict}]
+        """
         self.header = header
         self.description = description
         self.items = items.copy() if items else []
@@ -76,31 +71,59 @@ class WidgetCLI(WidgetCLIBase):
 
     @staticmethod
     def clear():
+        """
+        ru: Очистка экрана.
+        en: Clear the screen.
+        """
         os.system("clear")
 
     @staticmethod
     def stop():
+        """
+        ru: Завершение программы.
+        en: Program termination.
+        """
         os.system("clear")
         sys.exit()
 
     @staticmethod
     def draw_line_header():
+        """
+        ru: Отрисовка линии для заголовка.
+        en: Drawing a line for the header.
+        """
         print("+" * 70)
 
     @staticmethod
     def draw_line_items():
+        """
+        ru: Отрисовка линии для элементов.
+        en: Drawing a line for items.
+        """
         print("-" * 70)
 
     def print_header(self):
+        """
+        ru: Вывод заголовка.
+        en: Output header.
+        """
         self.draw_line_header()
         print(self.header)
         self.draw_line_header()
         print('\n')
 
     def print_description(self):
+        """
+        ru: Вывод описания.
+        en: Output description.
+        """
         print(self.description)
 
     def print_items(self):
+        """
+        ru: Вывод элементов.
+        en: Output items.
+        """
         print('\n')
         self.draw_line_items()
         print('\n')
@@ -110,10 +133,18 @@ class WidgetCLI(WidgetCLIBase):
         print('\n')
 
     def print_footer(self):
+        """
+        ru: Вывод футера.
+        en: Output footer.
+        """
         for item in self.footer:
             print(f"[{item['key']}] {item['text']}")
 
     def show(self):
+        """
+        ru: Отображение окна.
+        en: Display window.
+        """
         self.clear()
         self.print_header()
         self.print_description()
@@ -127,11 +158,20 @@ class WidgetCLI(WidgetCLIBase):
             self.get_callback(input())
 
     def invalid_input(self):
+        """
+        ru: Вывод сообщения об ошибке.
+        en: Output error message.
+        """
         self.clear()
         print("Неверный ввод! Попробуйте еще раз.")
         input("Нажмите любую клавишу.")
 
     def get_callback(self, key: str):
+        """
+        ru: Получение коллбэка по ключу.
+        en: Getting a callback by key.
+        """
+        key = key.lower().strip()
         if key == "exit":
             self.clear()
             self.stop()
@@ -147,19 +187,36 @@ class WidgetCLI(WidgetCLIBase):
 
 
 class WidgetCLIField(WidgetCLI):
+    """
+    ru: Виджет для работы с CLI с полем ввода.
+    en: Widget for working with CLI with an input field.
+    """
     def __init__(self, header: str, description: str, callback: callable):
+        """
+        :param header: заголовок
+        :param description: описание
+        :param callback: функция коллбэк для обработки ввода
+        """
         super().__init__(header, description)
         self.header = header
         self.description = description
         self.callback = callback
 
     def show(self):
+        """
+        ru: Отображение окна.
+        en: Display window.
+        """
         self.clear()
         self.print_header()
         self.print_description()
         self.get_callback(input())
 
     def get_callback(self, key: str):
+        """
+        ru: Получение коллбэка по ключу.
+        en: Getting a callback by key.
+        """
         if key == "exit":
             self.clear()
             self.stop()
@@ -168,32 +225,58 @@ class WidgetCLIField(WidgetCLI):
 
 
 class UserInterface:
+    """
+    ru: Класс для работы с пользовательским интерфейсом программы
+    en: Class for working with the user interface of the program
+    """
     def __init__(self):
+        # объекты для работы с API hh.ru
         self.find_vacancy = HHFindVacancy()
         self.find_employer = HHFindEmployer()
-        self.html2text = html2text.HTML2Text()
-        self.db = JsonDB("data/json_db/")
-        check_areas(self.db)
+        # обработка html в текст
+        self.convert_html = html2text.HTML2Text()
+        # объекты для работы с базой данных
+        self.db = JsonDB(DB_DIR)
+        CreateDB(self.db)
+        self.write_data = WriteData(self.db)
+        self.read_data = ReadData(self.db)
 
     def start(self):
-        header = "[Г]лавное [М]еню"
-        description = "HHParse - парсер вакансий и работодателей с сайта hh.ru\nВыберите действие:"
+        """
+        ru: Главное меню программы.
+        en: Main program menu.
+        """
+        header = "[HH] parser (author: di-m-dy)"
+        description = """UI CLI для работы с API hh.ru
+        
+Выберите вариант работы:
+<online> - напрямую запрос на сервер
+<local> - работа с локальной базой данных
+    
+Hint: 
+— в [] указана клавиша для действия
+— [exit] в любом месте программы закрывает ее
+        """
         items = [
             {"text": "ОНЛАЙН", "action": self.menu_online, "args": {}},
             {"text": "ЛОКАЛЬНО", "action": self.menu_local, "args": {}},
         ]
         footer = [
-            {"key": "q", "text": "выход", "action": WidgetCLI.stop, "args": {}}
+            {"key": "exit", "text": "выйти", "action": WidgetCLI.stop, "args": {}}
         ]
         widget = WidgetCLI(header, description, items, footer)
         widget.show()
 
     def menu_online(self):
+        """
+        ru: Онлайн меню программы.
+        en: Online program menu.
+        """
         header = "[О]нлайн [М]еню"
-        description = "Выберите действие:"
+        description = "Выберите вариант поиска:"
         items = [
             {"text": "Поиск вакансий", "action": self.find_vacancy_online, "args": {}},
-            {"text": "Поиск работодателей", "action": self.find_employer_online, "args": {}},
+            {"text": "Поиск работодателей", "action": self.quick_search_employer, "args": {}},
         ]
         footer = [
             {"key": "<", "text": "назад", "action": self.start, "args": {}}
@@ -202,11 +285,15 @@ class UserInterface:
         widget.show()
 
     def menu_local(self):
+        """
+        ru: Локальное меню программы.
+        en: Local program menu.
+        """
         header = "[Л]окальное [М]еню"
         description = "Выберите действие:"
         items = [
-            {"text": "Поиск вакансий", "action": self.find_vacancy_local, "args": {}},
-            {"text": "Поиск работодателей", "action": self.find_employer_local, "args": {}},
+            {"text": "Список вакансий", "action": self.find_vacancy_local, "args": {}},
+            {"text": "Список работодателей", "action": self.find_employer_local, "args": {}},
         ]
         footer = [
             {"key": "<", "text": "назад", "action": self.start, "args": {}}
@@ -215,11 +302,20 @@ class UserInterface:
         widget.show()
 
     def find_vacancy_online(self):
+        """
+        ru: Поиск вакансий онлайн.
+        en: Online job search.
+        """
         header = "[П]оиск [В]акансий [О]нлайн"
-        description = "Быстрый поиск или расширенный поиск?"
+        description = """Выберите вариант поиска:
+
+Подсказка:
+<быстрый> - общий поиск по тексту
+<параметры> - поиск с параметрами
+        """
         items = [
             {"text": "Быстрый поиск", "action": self.quick_search_menu, "args": {}},
-            {"text": "Расширенный поиск", "action": self.advanced_search_vacancy, "args": {}},
+            {"text": "Параметры поиска", "action": self.advanced_search_vacancy, "args": {}},
         ]
         footer = [
             {"key": "<", "text": "назад", "action": self.menu_online, "args": {}}
@@ -228,43 +324,70 @@ class UserInterface:
         widget.show()
 
     def quick_search_menu(self):
+        """
+        ru: Быстрый поиск ваканcий онлайн.
+        en: Quick job search online.
+        """
         header = "[Б]ыстрый [П]оиск"
         description = "Введите название вакансии:"
-        widget = WidgetCLIField(header, description, self.quick_search_vacancy)
+        widget = WidgetCLIField(header, description, self.online_search_vacancy)
         widget.show()
 
-    def quick_search_vacancy(self, vacancy_name: str, page: int = 0, **kwargs):  #todo: передавать не название вакансии а словарь со всеми параметрами
-        data = self.find_vacancy.find(text=vacancy_name, page=page, **kwargs)
+    def online_search_vacancy(self, text: str, page: int = 0, **kwargs):
+        """
+        ru: Запрос и отбражение вакансий онлайн.
+        en: Request and display jobs online.
+        """
+        try:
+            data = self.find_vacancy.find(text=text, page=page, **kwargs)
+        except ConnectionError as e:
+            os.system("clear")
+            input(f"Проблема с интернетом. Нажмите любую клавишу")
+            self.find_vacancy_online()
+        except ApiQueryError as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.find_vacancy_online()
+        except Exception as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.find_vacancy_online()
+        additional = kwargs
         vacancies = data["items"]
         page = data["page"]
         pages = data["pages"]
         found = data["found"]
         obj_list = HHGenerateVacanciesList(vacancies).generate()
-        header = f"Результаты поиска вакансий '{vacancy_name}':"
+        header = f"Результаты поиска вакансий '{text}':"
         description = f"Найдено {found} вакансий.\n{page + 1} страница из {pages}.\nВыберите вакансию для просмотра."
         items = [
             {
                 "text": f"{str(obj)}\n{str(obj.salary)}\n{str(obj.employer)}",
                 "action": self.show_info_vacancy,
-                "args": {"vacancy": obj, "vacancy_name": vacancy_name, "page": page}
+                "args": {"vacancy": obj, "text": text, "page": page}
             } for obj in obj_list
         ]
 
         next_page = {
             "key": ">>",
             "text": "следующая страница",
-            "action": self.quick_search_vacancy,
-            "args": {"page": page + 1, "vacancy_name": vacancy_name}
+            "action": self.online_search_vacancy,
+            "args": {"page": page + 1, "text": text} | additional
         }
         prev_page = {
             "key": "<<",
             "text": "предыдущая страница",
-            "action": self.quick_search_vacancy,
-            "args": {"page": page - 1, "vacancy_name": vacancy_name}
+            "action": self.online_search_vacancy,
+            "args": {"page": page - 1, "text": text} | additional
         }
         footer = [
             {"key": "q", "text": "выйти", "action": self.find_vacancy_online, "args": {}},
-            {"key": "s", "text": "сохранить страницу", "action": self.save_page_vacancies, "args": {"vacancies": vacancies, "page": page}}
+            {
+                "key": "s",
+                "text": "сохранить страницу",
+                "action": self.save_page_vacancies,
+                "args": {"vacancies": obj_list, "page": page, "text": text} | additional
+            }
         ]
         if page > 0:
             footer.append(prev_page)
@@ -273,48 +396,410 @@ class UserInterface:
         widget = WidgetCLI(header, description, items, footer)
         widget.show()
 
-    def show_info_vacancy(self, vacancy: HHVacancy, vacancy_name: str, page: int):
-        vacancy_info = HHInfoVacancy(vacancy.id_).info()
-        vacancy_description = self.html2text.handle(vacancy_info["description"])
+    def show_info_vacancy(self, vacancy: HHVacancy, **kwargs):
+        try:
+            vacancy_info = HHInfoVacancy(vacancy.id_).info()
+        except ConnectionError as e:
+            os.system("clear")
+            input(f"Проблема с интернетом. Нажмите любую клавишу")
+            self.online_search_vacancy(**kwargs)
+        except ApiQueryError as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.online_search_vacancy(**kwargs)
+        except Exception as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.online_search_vacancy(**kwargs)
+        self.save_vacancy_info(vacancy, vacancy_info["description"])
+        vacancy_description = self.html2txt(vacancy_info["description"])
         salary = f"Зарплата: {str(vacancy.salary) if vacancy.salary else 'не указана'}"
         employer = f"Работодатель: {str(vacancy.employer)}"
-        header = f"Информация о вакансии '{vacancy.name}':"
+        header = f"Информация о вакансии «{vacancy.name}»:"
         description = f"{salary}\n{employer}\n\n{vacancy_description}"
         footer = [
             {
                 "key": "<",
                 "text": "назад",
-                "action": self.quick_search_vacancy,
-                "args": {"vacancy_name": vacancy_name, "page": page}
+                "action": self.online_search_vacancy,
+                "args": kwargs
             }
         ]
         widget = WidgetCLI(header=header, description=description, footer=footer)
         widget.show()
 
-    def save_page_vacancies(self, vacancies: list[HHVacancy], page: int):
-        save_vacancies_to_db(self.db, vacancies)
+    def save_page_vacancies(self, vacancies: list[HHVacancy], **kwargs):
+        print("Сохранение данных...")
+        page = kwargs.get("page", '')
+        for vacancy in vacancies:
+            self.write_data.add_vacancy(vacancy)
         header = "Сохранение данных"
-        description = f"Страница {page} сохранена в базу данных."
+        description = f"Страница [{page + 1}] сохранена в базу данных."
         footer = [
-            {"key": "<", "text": "назад", "action": self.quick_search_vacancy, "args": {}}
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.online_search_vacancy,
+                "args": kwargs}
         ]
         widget = WidgetCLI(header=header, description=description, footer=footer)
         widget.show()
 
     def advanced_search_vacancy(self):
-        pass
+        """
+        ru: Поиск вакансий с параметрами.
+        en: Search for vacancies with parameters.
+        """
+        parameters = {}
+        header = "[П]араметры [П]оиска"
+        # step 1 name
+        description = "Введите название вакансии:"
+        widget = WidgetCLIField(
+            header=header,
+            description=description,
+            callback=lambda x: parameters.update({"text": x})
+        )
+        widget.show()
+        # step 2 salary
+        description = "Показать вакансии только с указанной зарплатой?"
+        items = [
+            {"text": "Да", "action": lambda: parameters.update({"only_with_salary": True}), "args": {}},
+            {"text": "Нет", "action": lambda: parameters.update({"only_with_salary": False}), "args": {}},
+        ]
+        widget = WidgetCLI(header=header, description=description, items=items)
+        widget.show()
+        # step 3 schedule
+        description = "Выберите график работы:"
+        items = [
+            {"text": "Полный день", "action": lambda: parameters.update({"schedule": "fullDay"}), "args": {}},
+            {"text": "Сменный график", "action": lambda: parameters.update({"schedule": "shift"}), "args": {}},
+            {"text": "Гибкий график", "action": lambda: parameters.update({"schedule": "flexible"}), "args": {}},
+            {"text": "Удаленная работа", "action": lambda: parameters.update({"schedule": "remote"}), "args": {}},
+            {"text": "Вахтовый метод", "action": lambda: parameters.update({"schedule": "flyInFlyOut"}), "args": {}}
+        ]
+        widget = WidgetCLI(header=header, description=description, items=items)
+        widget.show()
+        # step 4 experience
+        description = "Выберите опыт работы:"
+        items = [
+            {"text": "Нет опыта", "action": lambda: parameters.update({"experience": "noExperience"}), "args": {}},
+            {
+                "text": "От 1 года до 3 лет",
+                "action": lambda: parameters.update({"experience": "between1And3"}),
+                "args": {}
+            },
+            {"text": "От 3 до 6 лет", "action": lambda: parameters.update({"experience": "between3And6"}), "args": {}},
+            {"text": "Более 6 лет", "action": lambda: parameters.update({"experience": "moreThan6"}), "args": {}}
+        ]
+        widget = WidgetCLI(header=header, description=description, items=items)
+        widget.show()
+        # step 5 employment
+        description = "Выберите тип занятости:"
+        items = [
+            {"text": "Полная занятость", "action": lambda: parameters.update({"employment": "full"}), "args": {}},
+            {"text": "Частичная занятость", "action": lambda: parameters.update({"employment": "part"}), "args": {}},
+            {"text": "Проектная работа", "action": lambda: parameters.update({"employment": "project"}), "args": {}},
+            {"text": "Стажировка", "action": lambda: parameters.update({"employment": "probation"}), "args": {}},
+            {"text": "Волонтёрство", "action": lambda: parameters.update({"employment": "volunteer"}), "args": {}}
+        ]
+        widget = WidgetCLI(header=header, description=description, items=items)
+        widget.show()
 
-    def find_employer_online(self):
-        pass
+        self.online_search_vacancy(**parameters)
 
-    def find_vacancy_local(self):
-        pass
+    def quick_search_employer(self):
+        """
+        ru: Быстрый поиск работодателя.
+        en: Quick search for employer.
+        """
+        header = "[Б]ыстрый [П]оиск"
+        description = "Введите название работодателя:"
+        widget = WidgetCLIField(header, description, self.online_search_employer)
+        widget.show()
 
-    def find_employer_local(self):
-        pass
+    def online_search_employer(self, text: str, page: int = 0, **kwargs):
+        try:
+            data = self.find_employer.find(text=text, page=page, **kwargs)
+        except ConnectionError as e:
+            os.system("clear")
+            input(f"Проблема с интернетом. Нажмите любую клавишу")
+            self.menu_online()
+        except ApiQueryError as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.menu_online()
+        except Exception as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.menu_online()
+        employers = data["items"]
+        page = data["page"]
+        pages = data["pages"]
+        found = data["found"]
+        obj_list = HHGenerateEmployersList(employers).generate()
+        header = f"Результаты поиска работодателей '{text}':"
+        description = (f"Найдено {found} работодателей.\n{page + 1}"
+                       f" страница из {pages}.\nВыберите работодателя для просмотра.")
+        items = [
+            {
+                "text": str(obj),
+                "action": self.show_info_employer,
+                "args": {"employer": obj, "text": text, "page": page}
+            } for obj in obj_list
+        ]
 
-    def save_all_vacancies(self, vacancy_name: str):
-        pass
+        next_page = {
+            "key": ">>",
+            "text": "следующая страница",
+            "action": self.online_search_employer,
+            "args": {"page": page + 1, "text": text} | kwargs
+        }
+        prev_page = {
+            "key": "<<",
+            "text": "предыдущая страница",
+            "action": self.online_search_employer,
+            "args": {"page": page - 1, "text": text} | kwargs
+        }
+        footer = [
+            {"key": "q", "text": "выйти", "action": self.menu_online, "args": {}},
+            {
+                "key": "s",
+                "text": "сохранить страницу",
+                "action": self.save_page_employers,
+                "args": {"employers": obj_list, "page": page, "text": text} | kwargs}
+        ]
+        if page > 0:
+            footer.append(prev_page)
+        if page < pages:
+            footer.append(next_page)
+        widget = WidgetCLI(header, description, items, footer)
+        widget.show()
 
-    def save_vacancy_info(self):
-        pass
+    def show_info_employer(self, employer: HHEmployer, **kwargs):
+        try:
+            employer_info = HHInfoEmployer(employer.id_).info()
+        except ConnectionError as e:
+            os.system("clear")
+            input(f"Проблема с интернетом. Нажмите любую клавишу")
+            self.online_search_employer(**kwargs)
+        except ApiQueryError as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.online_search_employer(**kwargs)
+        except Exception as e:
+            os.system("clear")
+            input(f"{e}. Нажмите любую клавишу.")
+            self.online_search_employer(**kwargs)
+        employer_description = self.html2txt(employer_info["description"])
+        header = f"Информация о работодателе «{employer.name}»:"
+        description = f"{employer_description}"
+        footer = [
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.online_search_employer,
+                "args": kwargs
+            }
+        ]
+        widget = WidgetCLI(header=header, description=description, footer=footer)
+        widget.show()
+
+    def save_page_employers(self, employers: list[HHEmployer], **kwargs):
+        print("Сохранение данных...")
+        page = kwargs.get("page", '')
+        for employer in employers:
+            self.write_data.add_employer(employer)
+        header = "Сохранение данных"
+        description = f"Страница [{page + 1}] сохранена в базу данных."
+        footer = [
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.online_search_employer,
+                "args": kwargs
+            }
+        ]
+        widget = WidgetCLI(header=header, description=description, footer=footer)
+        widget.show()
+
+    def find_vacancy_local(self, page: int = 0):
+        """
+        ru: Вывод вакансий из локальной базы данных.
+            Разбивка по 10 вакансий на страницу.
+        en: Output of vacancies from a local database.
+            Breakdown by 10 vacancies per page.
+        """
+        vacancies = self.read_data.get_vacancy()
+        pages = len(vacancies) // 10
+        obj_list = [HHVacancy.create(**vacancy) for vacancy in vacancies[page * 10:page * 10 + 10]]
+        header = "Список вакансий:"
+        description = f"Страница {page + 1} из {pages + 1}."
+        items = [
+            {
+                "text": f"{str(obj)}\n{str(obj.salary)}\n{str(obj.employer)}",
+                "action": self.show_info_vacancy_local,
+                "args": {"vacancy": obj, "page": page}
+            } for obj in obj_list
+        ]
+        next_page = {
+            "key": ">>",
+            "text": "следующая страница",
+            "action": self.find_vacancy_local,
+            "args": {"page": page + 1}
+        }
+        prev_page = {
+            "key": "<<",
+            "text": "предыдущая страница",
+            "action": self.find_vacancy_local,
+            "args": {"page": page - 1}
+        }
+        footer = [
+            {"key": "q", "text": "выйти", "action": self.menu_local, "args": {}}
+        ]
+        if 0 < page < pages:
+            footer.append(prev_page)
+        if page < pages:
+            footer.append(next_page)
+
+        widget = WidgetCLI(header=header, description=description, items=items, footer=footer)
+        widget.show()
+
+    def show_info_vacancy_local(self, vacancy: HHVacancy, page: int):
+        if not vacancy.description:
+            try:
+                vacancy_info = HHInfoVacancy(vacancy.id_).info()
+                vacancy.description = vacancy_info["description"]
+                self.save_vacancy_info(vacancy, vacancy_info["description"])
+            except ConnectionError as e:
+                vacancy.description = "Проблема с интернетом. Попробуйте позже."
+            except ApiQueryError as e:
+                vacancy.description = f"{e}. Попробуйте позже."
+            except Exception as e:
+                vacancy.description = f"{e}. Попробуйте позже."
+        header = f"Информация о вакансии «{vacancy.name}»:"
+        description = f"Зарплата: {str(vacancy.salary) if vacancy.salary else 'не указана'}\n" \
+                      f"Работодатель: {str(vacancy.employer)}\n\n{self.html2txt(vacancy.description)}"
+        footer = [
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.find_vacancy_local,
+                "args": {"page": page}
+            }
+        ]
+        widget = WidgetCLI(header=header, description=description, footer=footer)
+        widget.show()
+
+    def find_employer_local(self, page: int = 0):
+        """
+        ru: Вывод работодателей из локальной базы данных.
+            Разбивка по 10 работодателей на страницу.
+        en: Output of employers from a local database.
+            Breakdown by 10 employers per page.
+        """
+        employers = self.read_data.get_employer()
+        pages = len(employers) // 10
+        obj_list = [HHEmployer.create(**employer) for employer in employers[page * 10:page * 10 + 10]]
+        header = "Список работодателей:"
+        description = f"Страница {page + 1} из {pages + 1}."
+        items = [
+            {
+                "text": str(obj),
+                "action": self.show_info_employer_local,
+                "args": {"employer": obj, "page": page}
+            } for obj in obj_list
+        ]
+        next_page = {
+            "key": ">>",
+            "text": "следующая страница",
+            "action": self.find_employer_local,
+            "args": {"page": page + 1}
+        }
+        prev_page = {
+            "key": "<<",
+            "text": "предыдущая страница",
+            "action": self.find_employer_local,
+            "args": {"page": page - 1}
+        }
+        footer = [
+            {"key": "q", "text": "выйти", "action": self.menu_local, "args": {}}
+        ]
+        if 0 < page < pages:
+            footer.append(prev_page)
+        if page < pages:
+            footer.append(next_page)
+
+        widget = WidgetCLI(header=header, description=description, items=items, footer=footer)
+        widget.show()
+
+    def show_info_employer_local(self, employer: HHEmployer, page: int):
+        if not employer.description:
+            try:
+                employer_info = HHInfoEmployer(employer.id_).info()
+                employer.description = employer_info["description"]
+                self.save_employer_info(employer, employer_info["description"])
+            except ConnectionError as e:
+                employer.description = "Проблема с интернетом. Попробуйте позже."
+            except ApiQueryError as e:
+                employer.description = f"{e}. Попробуйте позже."
+            except Exception as e:
+                employer.description = f"{e}. Попробуйте позже."
+        header = f"Информация о работодателе «{employer.name}»:"
+        description = f"{self.html2txt(employer.description)}"
+        footer = [
+            {
+                "key": "<",
+                "text": "назад",
+                "action": self.find_employer_local,
+                "args": {"page": page}
+            }
+        ]
+        widget = WidgetCLI(header=header, description=description, footer=footer)
+        widget.show()
+
+    def save_vacancy_info(self, vacancy: HHVacancy, description: str):
+        """
+        ru: Сохранение информации о вакансии в локальную базу данных.
+        en: Saving information about a vacancy to a local database.
+        """
+        vacancy_id = vacancy.id_
+        check_vacancy = self.read_data.get_vacancy({"key": "id", "value": vacancy_id})
+        if check_vacancy:
+            if not check_vacancy[0]["description"]:
+                self.db.update_value(
+                    "vacancy",
+                    "description",
+                    description,
+                    "id",
+                    vacancy_id
+                )
+        else:
+            vacancy.description = description
+            self.write_data.add_vacancy(vacancy)
+
+    def save_employer_info(self, employer: HHEmployer, description: str):
+        """
+        ru: Сохранение информации о работодателе в локальную базу данных.
+        en: Saving information about an employer to a local database.
+        """
+        employer_id = employer.id_
+        check_employer = self.read_data.get_employer({"key": "id", "value": employer_id})
+        if check_employer:
+            if not check_employer[0]["description"]:
+                self.db.update_value(
+                    "employer",
+                    "description",
+                    description,
+                    "id",
+                    employer_id
+                )
+        else:
+            employer.description = description
+            self.write_data.add_employer(employer)
+
+    def html2txt(self, html: str):
+        try:
+            text = self.convert_html.handle(html)
+        except AttributeError as e:
+            text = html
+        return text

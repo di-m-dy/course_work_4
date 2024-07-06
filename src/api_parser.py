@@ -1,10 +1,8 @@
 """
 ru: Модуль для работы с API для выгрузки данных различных сайтов.
-    Основа сделана на базе OpenAPI от hh.ru
+    В модуле hh_parser - реализован пример на базе OpenAPI от hh.ru
 en: Module for working with API for parsing data from various sites.
-    The basis is made on the basis of OpenAPI from hh.ru
-
-    MAIN URL: https://api.hh.ru
+    In the hh_parser module - an example is implemented based on the OpenAPI from hh.ru
 """
 from abc import ABC, abstractmethod
 import requests
@@ -31,11 +29,9 @@ class ApiBase(Api):
     ru: Базовый класс для работы с API.
         Определяет метод запроса и проверки ответа.
         Рекомендуется использовать для наследования, но можно использовать и самостоятельно.
-        Базовый класс работает без параметров запроса.
     en: Base class for working with API.
         Defines the request method and response check.
         It is recommended to use for inheritance, but you can use it independently.
-        The base class works without request parameters.
     """
     def __init__(self, scope: str, headers: dict = None):
         """
@@ -123,12 +119,12 @@ class JobObjectBase(ABC):
         pass
 
 
-class JobObject(JobObjectBase):  # todo: add method for return object as dict
+class JobObject(JobObjectBase):
     def __init__(self, **kwargs):
         self.__dict__ = self.rename_built_keys(**kwargs)
 
     @staticmethod
-    def rename_built_keys(**kwargs):
+    def rename_built_keys(**kwargs) -> dict:
         """
         ru: Переименование ключей, если они совпадают с ключевыми словами Python.
         en: Renaming keys if they match Python keywords.
@@ -144,9 +140,17 @@ class JobObject(JobObjectBase):  # todo: add method for return object as dict
 
     @classmethod
     def create(cls, **kwargs):
+        """
+        ru: Создание объекта.
+        en: Object creation.
+        """
         return cls(**cls.rename_built_keys(**kwargs))
 
-    def get_dict(self):
+    def get_dict(self) -> dict:
+        """
+        ru: Получение словаря аттрибутов объекта.
+        en: Getting a dictionary of object attributes.
+        """
         built_keys = ["id_", "type_", "from_"]
         result = {}
         for key in self.__dict__.keys():
@@ -160,6 +164,10 @@ class JobObject(JobObjectBase):  # todo: add method for return object as dict
 
 
 class GenerateObjectsListBase(ABC):
+    """
+    ru: Абстрактный класс для генерации списка объектов.
+    en: Abstract class for generating a list of objects.
+    """
     @abstractmethod
     def get_object(self):
         pass
@@ -170,11 +178,28 @@ class GenerateObjectsListBase(ABC):
 
 
 class GenerateObjectsList(GenerateObjectsListBase):
+    """
+    ru: Класс для генерации списка объектов.
+    en: Class for generating a list of objects.
+    """
     def __init__(self, items: list[dict]):
+        """
+        ru: Инициализация класса.
+        en: Class initialization.
+        :param items: список словарей c данными / list of dictionaries with data
+        """
         self.items = items
 
     def get_object(self):
-        return JobObjectBase
+        """
+        ru: Фабричный метод для передачи нужного объекта
+        en: Factory method for passing the required object
+        """
+        return JobObject
 
     def generate(self):
+        """
+        ru: Генерация списка объектов.
+        en: Generating a list of objects.
+        """
         return [self.get_object().create(**obj) for obj in self.items]

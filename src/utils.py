@@ -9,12 +9,8 @@ CreateDB: класс для создания областей в базе дан
 WriteData: класс на запись в базу данных c методами добавления разных объектов в базу данных
 
 ReadData: класс на чтение из базы данных и методы вывода данных из базы данных в списки словарей:
-    : получить вакансии из базы данных
-    : получить работодателей из базы данных
-    : получить зарплаты из базы данных
-    : получить локации из базы данных
-    : получить опыт работы из базы данных
-    : получить тип занятости из базы данных
+
+FilterDataDB: класс для фильтрации вакансий из базы данных
 """
 
 from src.config import (
@@ -27,10 +23,8 @@ from src.config import (
     SCHEDULE_FIELDS,
     EMPLOYER_URL_LOGO_FIELDS
 )
-from src.data_base import BaseDB, JsonDB
+from src.data_base import BaseDB
 from src.api_parser import JobObject
-from src.hh_parser import HHFindVacancy, HHFindEmployer, HHGenerateVacanciesList
-from src.hh_parser import HHVacancy, HHSalary, HHEmployer, HHArea, HHExperience, HHEmployment, HHSchedule
 
 
 class CreateDB:
@@ -40,14 +34,23 @@ class CreateDB:
     en: Class for creating areas in the database.
         Checks the presence of a database and all areas in it.
     """
-    def __init__(self, db: BaseDB, fields: list[dict]):
+    def __init__(self, db: BaseDB):
         """
         ru: Инициализация класса.
         en: Class initialization.
         :param db: database object
         """
         self.db = db
-        self.fields = fields
+        self.fields = [
+            VACANCY_FIELDS,
+            EMPLOYER_FIELDS,
+            SALARY_FIELDS,
+            AREA_FIELDS,
+            EXPERIENCE_FIELDS,
+            EMPLOYMENT_FIELDS,
+            SCHEDULE_FIELDS,
+            EMPLOYER_URL_LOGO_FIELDS
+        ]
         for field in self.fields:
             check = self.db.check_area_name(field["name"])
             if not check:
@@ -61,8 +64,6 @@ class WriteData:
     """
     def __init__(self, db: BaseDB):
         """
-        ru: Инициализация класса.
-        en: Class initialization.
         :param db: database object
         """
         self.db = db
@@ -71,6 +72,7 @@ class WriteData:
         """
         ru: Добавить локацию в базу данных.
         en: Add location to the database.
+        :param area: объект локации
         """
         self.db.add_value(AREA_FIELDS["name"], area.get_dict())
 
@@ -78,6 +80,7 @@ class WriteData:
         """
         ru: Добавить опыт работы в базу данных.
         en: Add experience to the database.
+        :param experience: объект опыта работы
         """
         self.db.add_value(EXPERIENCE_FIELDS["name"], experience.get_dict())
 
@@ -85,6 +88,7 @@ class WriteData:
         """
         ru: Добавить тип занятости в базу данных.
         en: Add employment type to the database.
+        :param employment: объект типа занятости
         """
         self.db.add_value(EMPLOYMENT_FIELDS["name"], employment.get_dict())
 
@@ -92,6 +96,7 @@ class WriteData:
         """
         ru: Добавить график работы в базу данных.
         en: Add work schedule to the database.
+        :param schedule: объект графика работы
         """
         self.db.add_value(SCHEDULE_FIELDS["name"], schedule.get_dict())
 
@@ -99,6 +104,7 @@ class WriteData:
         """
         ru: Добавить зарплату в базу данных.
         en: Add salary to the database.
+        :param salary: объект зарплаты
         """
         to_add = salary.get_dict()
         to_add["vacancy_id"] = vacancy_id
@@ -108,6 +114,7 @@ class WriteData:
         """
         ru: Добавить логотип работодателя в базу данных.
         en: Add employer logo to the database.
+        :param employer_url_logo: объект логотипа работодателя
         """
         to_add = employer_url_logo.get_dict()
         to_add["employer_id"] = employer_id
@@ -117,6 +124,7 @@ class WriteData:
         """
         ru: Добавить работодателя в базу данных.
         en: Add employer to the database.
+        :param employer: объект работодателя
         """
         get_dict = employer.get_dict()
         to_add = {
@@ -136,6 +144,7 @@ class WriteData:
         """
         ru: Добавить вакансию в базу данных.
         en: Add vacancy to the database.
+        :param vacancy: объект вакансии
         """
         get_dict = vacancy.get_dict()
         employer = get_dict["employer"]
@@ -178,16 +187,15 @@ class ReadData:
     """
     def __init__(self, db: BaseDB):
         """
-        ru: Инициализация класса.
-        en: Class initialization.
         :param db: database object
         """
         self.db = db
 
-    def get_area(self, key_value: dict[str, any] = None):
+    def get_area(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить локации из базы данных.
         en: Get locations from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(AREA_FIELDS["name"], key_value)
@@ -195,10 +203,11 @@ class ReadData:
             data = self.db.select_value(AREA_FIELDS["name"])
         return data
 
-    def get_experience(self, key_value: dict[str, any] = None):
+    def get_experience(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить опыт работы из базы данных.
         en: Get experience from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(EXPERIENCE_FIELDS["name"], key_value)
@@ -206,10 +215,11 @@ class ReadData:
             data = self.db.select_value(EXPERIENCE_FIELDS["name"])
         return data
 
-    def get_employment(self, key_value: dict[str, any] = None):
+    def get_employment(self, key_value: dict[str, any] = None) -> list:
         """
-        ru: Получить тип занятости из базы ��анных.
+        ru: Получить тип занятости из базы данных.
         en: Get employment type from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(EMPLOYMENT_FIELDS["name"], key_value)
@@ -217,10 +227,11 @@ class ReadData:
             data = self.db.select_value(EMPLOYMENT_FIELDS["name"])
         return data
 
-    def get_schedule(self, key_value: dict[str, any] = None):
+    def get_schedule(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить график работы из базы данных.
         en: Get work schedule from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(SCHEDULE_FIELDS["name"], key_value)
@@ -228,10 +239,11 @@ class ReadData:
             data = self.db.select_value(SCHEDULE_FIELDS["name"])
         return data
 
-    def get_salary(self, key_value: dict[str, any] = None):
+    def get_salary(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить зарплаты из базы данных.
         en: Get salaries from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(SALARY_FIELDS["name"], key_value)
@@ -239,10 +251,11 @@ class ReadData:
             data = self.db.select_value(SALARY_FIELDS["name"])
         return data
 
-    def get_employer_url_logo(self, key_value: dict[str, any] = None):
+    def get_employer_url_logo(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить логотипы работодателей из базы данных.
         en: Get employer logos from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(EMPLOYER_URL_LOGO_FIELDS["name"], key_value)
@@ -250,10 +263,11 @@ class ReadData:
             data = self.db.select_value(EMPLOYER_URL_LOGO_FIELDS["name"])
         return data
 
-    def get_employer(self, key_value: dict[str, any] = None):
+    def get_employer(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить работодателей из базы данных.
         en: Get employers from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(EMPLOYER_FIELDS["name"], key_value)
@@ -265,10 +279,11 @@ class ReadData:
             employer["logo_urls"] = logo
         return data
 
-    def get_vacancy(self, key_value: dict[str, any] = None):
+    def get_vacancy(self, key_value: dict[str, any] = None) -> list:
         """
         ru: Получить вакансии из базы данных.
         en: Get vacancies from the database.
+        :param key_value: ключ и значение для поиска
         """
         if key_value:
             data = self.db.select_value(VACANCY_FIELDS["name"], key_value)
@@ -308,3 +323,22 @@ class ReadData:
             vacancy["employer"] = employer
 
         return data
+
+
+class FilterDataDB:
+    """
+    ru: Класс для фильтрации вакансий из базы данных.
+    en: Class for filtering vacancies from the database.
+    """
+    def __init__(self, items: list[dict[str, any]]):
+        """
+        :param items: list of vacancies
+        """
+        self.items = items
+
+    def filter(self, text: str, key: str) -> list:
+        """
+        ru: Фильтрация вакансий по локации.
+        en: Filtering vacancies by location.
+        """
+        return [item for item in self.items if text.lower() in item[key].lower()]

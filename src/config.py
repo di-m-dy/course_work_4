@@ -3,6 +3,14 @@ ru: Модуль для конфигурации проекта.
 en: Module for project configuration.
 """
 
+import os
+
+# абсолютный путь к директории проекта / project root directory
+ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+# директория базы данных / database directory
+DB_DIR = os.path.join(ROOT_DIR, "data")
+
+# название таблиц базы с описанием полей / database tables with fields description
 VACANCY_FIELDS = {
     "name": "vacancy",
     "fields": {
