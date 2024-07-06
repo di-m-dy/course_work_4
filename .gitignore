@@ -173,7 +173,7 @@ poetry.toml
 # LSP config files
 pyrightconfig.json
 
-tests/
+
 data/test.json
 WIP/
 
