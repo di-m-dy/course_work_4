@@ -6,7 +6,7 @@ en: Module for project configuration.
 import os
 
 # абсолютный путь к директории проекта / project root directory
-ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 # директория базы данных / database directory
 DB_DIR = os.path.join(ROOT_DIR, "data")
 
