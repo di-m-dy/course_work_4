@@ -353,7 +353,7 @@ class HHArea(JobObject):
         super().__init__(id_=id_, name=name, url=self.url)
 
     def __str__(self):
-        return f"Локация: {self.name}"
+        return f"Регион: {self.name}"
 
 
 class HHSalary(JobObject):
@@ -363,8 +363,8 @@ class HHSalary(JobObject):
     """
     def __init__(
             self,
-            from_: int,
-            to: int,
+            from_: int | None,
+            to: int | None,
             currency: str,
             gross: bool = False,
     ):

@@ -323,22 +323,3 @@ class ReadData:
             vacancy["employer"] = employer
 
         return data
-
-
-class FilterDataDB:
-    """
-    ru: Класс для фильтрации вакансий из базы данных.
-    en: Class for filtering vacancies from the database.
-    """
-    def __init__(self, items: list[dict[str, any]]):
-        """
-        :param items: list of vacancies
-        """
-        self.items = items
-
-    def filter(self, text: str, key: str) -> list:
-        """
-        ru: Фильтрация вакансий по локации.
-        en: Filtering vacancies by location.
-        """
-        return [item for item in self.items if text.lower() in item[key].lower()]
